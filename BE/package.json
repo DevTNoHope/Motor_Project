@@ -1,0 +1,28 @@
+{
+  "name": "be",
+  "version": "1.0.0",
+  "description": "BE/\r ├─ src/\r │ ├─ server.js # tạo app, listen\r │ ├─ app.js # cấu hình express, view engine, routes, middlewares\r │ ├─ config/\r │ │ ├─ env.js # đọc .env\r │ │ └─ db.js # init Sequelize\r │ ├─ models/ # Sequelize models (Roles, Accs, Users, Employees,...)\r │ │ ├─ index.js # liên kết models & export\r │ │ ├─ role.model.js\r │ │ ├─ acc.model.js\r │ │ ├─ user.model.js\r │ │ ├─ employee.model.js\r │ │ ├─ service.model.js\r │ │ ├─ vehicle.model.js\r │ │ ├─ booking.model.js\r │ │ ├─ bookingService.model.js\r │ │ ├─ diagnosis.model.js\r │ │ ├─ partType.model.js\r │ │ ├─ supplier.model.js\r │ │ ├─ part.model.js\r │ │ ├─ inventory.model.js\r │ │ ├─ purchaseOrder.model.js\r │ │ ├─ purchaseOrderItem.model.js\r │ │ └─ payment.model.js\r │ ├─ controllers/ # xử lý request -> gọi services\r │ │ ├─ auth.controller.js\r │ │ ├─ me.controller.js\r │ │ ├─ service.controller.js\r │ │ ├─ booking.controller.js\r │ │ ├─ mechanic.controller.js\r │ │ ├─ admin.controller.js\r │ │ ├─ part.controller.js\r │ │ ├─ purchase.controller.js\r │ │ └─ inventory.controller.js\r │ ├─ services/ # nghiệp vụ (anti-overlap, state machine, ...)\r │ │ ├─ auth.service.js\r │ │ ├─ booking.service.js\r │ │ ├─ slot.service.js\r │ │ ├─ mechanic.service.js\r │ │ ├─ admin.service.js\r │ │ ├─ part.service.js\r │ │ └─ purchase.service.js\r │ ├─ routes/ # khai báo route\r │ │ ├─ api/\r │ │ │ ├─ auth.api.js\r │ │ │ ├─ me.api.js\r │ │ │ ├─ services.api.js\r │ │ │ ├─ bookings.api.js\r │ │ │ ├─ mechanic.api.js\r │ │ │ ├─ admin.api.js\r │ │ │ ├─ parts.api.js\r │ │ │ ├─ inventory.api.js\r │ │ │ └─ purchase.api.js\r │ │ └─ web/\r │ │ ├─ admin.web.js # SSR EJS cho trang admin\r │ │ └─ index.web.js\r │ ├─ middlewares/\r │ │ ├─ auth.js # verifyJWT, requireRole\r │ │ ├─ error.js # error handler\r │ │ └─ upload.js # multer upload avatar\r │ ├─ views/ # EJS views (Admin MVC)\r │ │ ├─ layouts/\r │ │ │ └─ admin.ejs\r │ │ ├─ admin/\r │ │ │ ├─ dashboard.ejs\r │ │ │ ├─ bookings.ejs\r │ │ │ ├─ services.ejs\r │ │ │ ├─ users.ejs\r │ │ │ ├─ employees.ejs\r │ │ │ ├─ parts.ejs\r │ │ │ └─ purchase_orders.ejs\r │ │ └─ partials/\r │ ├─ public/ # css/js/images admin tĩnh\r │ └─ utils/\r │ ├─ date.js\r │ └─ overlap.js # hàm kiểm tra trùng lịch\r ├─ .env.example\r ├─ package.json\r └─ README.md",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node src/server.js",
+    "start": "node src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.19",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-validator": "^7.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "mysql2": "^3.15.3",
+    "sequelize": "^6.37.7"
+  }
+}
