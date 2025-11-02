@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title><%= title || 'Admin' %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-50 text-slate-800">
+    <header class="p-4 border-b bg-white flex items-center justify-between">
+      <div>Admin</div>
+      <div class="text-sm">
+        <% if (typeof currentUser !== 'undefined') { %>
+        <span class="mr-4"
+          >Xin chào, <%= currentUser.name %> (<%= currentUser.role %>)</span
+        >
+        <% } %>
+        <a
+          href="/admin/logout"
+          class="px-3 py-1 rounded bg-slate-800 text-white"
+          >Đăng xuất</a
+        >
+      </div>
+    </header>
+    <main class="p-6"><%- body %></main>
+  </body>
+</html>
