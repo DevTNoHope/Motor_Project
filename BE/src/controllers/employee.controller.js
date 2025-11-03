@@ -1,4 +1,4 @@
-const service = require('../services/part.service');
+const service = require('../services/employee.service');
 
 async function getAll(req, res, next) {
   try {
