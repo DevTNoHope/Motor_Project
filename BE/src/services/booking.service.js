@@ -1,0 +1,307 @@
+const { Op } = require('sequelize');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+dayjs.extend(utc);
+
+const { User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis } = require('../models');
+const { isOverlap } = require('../utils/overlap');
+
+// cấu hình
+const DIAGNOSIS_PLACEHOLDER_MIN = 30; // slot chẩn đoán cho REPAIR trước khi ước lượng
+const BLOCK_STATUSES = ['PENDING','APPROVED','IN_DIAGNOSIS','IN_PROGRESS']; // các trạng thái chặn đặt lịch
+
+async function ensureUserByAcc(accId) {
+  let u = await User.findOne({ where: { acc_id: accId } });
+  if (!u) u = await User.create({ acc_id: accId });
+  return u;
+}
+
+async function loadServices(serviceIds) {
+  const rows = await Service.findAll({ where: { id: { [Op.in]: serviceIds }, is_active: true } });
+  if (rows.length !== serviceIds.length) {
+    const has = new Set(rows.map(r => String(r.id)));
+    const miss = serviceIds.filter(id => !has.has(String(id)));
+    const e = new Error('Some services not found or inactive: ' + miss.join(','));
+    e.status = 400; e.code = 'SERVICE_NOT_FOUND'; throw e;
+  }
+  return rows;
+}
+
+function calcInitialDuration(services) {
+  let quickMin = 0;
+  let hasRepair = false;
+
+  for (const s of services) {
+    if (s.type === 'QUICK') {
+      if (!s.default_duration_min) {
+        const e = new Error(`Service ${s.id} missing default_duration_min`);
+        e.status = 400; e.code = 'SERVICE_DURATION_MISSING'; throw e;
+      }
+      quickMin += s.default_duration_min;
+    } else if (s.type === 'REPAIR') {
+      hasRepair = true;
+    }
+  }
+
+  const initialMin = quickMin + (hasRepair ? DIAGNOSIS_PLACEHOLDER_MIN : 0);
+  return { initialMin, quickMin, hasRepair };
+}
+
+async function checkOverlap(mechanicId, startISO, endISO, ignoreBookingId = null) {
+  if (!mechanicId) return; // chọn "bất kỳ" -> chưa cần check
+  const start = new Date(startISO);
+  const end   = new Date(endISO);
+
+  // lấy các booking của thợ trùng khoảng thời gian và có status chặn
+  const rows = await Booking.findAll({
+    where: {
+      mechanic_id: mechanicId,
+      status: { [Op.in]: BLOCK_STATUSES },
+      start_dt: { [Op.lt]: end },      // start < end_new
+      end_dt:   { [Op.gt]: start }     // end   > start_new
+    },
+    attributes: ['id','start_dt','end_dt','status']
+  });
+
+  // nếu end_dt null (hiếm khi cho REPAIR chưa chẩn đoán), coi như trùng nếu thời gian giao nhau theo start_dt
+  for (const b of rows) {
+    const bStart = new Date(b.start_dt);
+    const bEnd   = b.end_dt ? new Date(b.end_dt) : new Date(bStart.getTime() + 60*60*1000); // fallback 60'
+    if (ignoreBookingId && Number(ignoreBookingId) === Number(b.id)) continue;
+    if (isOverlap(start, end, bStart, bEnd)) {
+      const e = new Error('Mechanic time overlap');
+      e.status = 409; e.code = 'OVERLAP_SLOT';
+      e.details = { with: b.id, bStart, bEnd };
+      throw e;
+    }
+  }
+}
+
+async function createBooking(accId, payload) {
+  const { vehicleId, serviceIds, mechanicId = null, start, notesUser } = payload;
+
+  if (!Array.isArray(serviceIds) || serviceIds.length === 0) {
+    const e = new Error('serviceIds required'); e.status = 400; throw e;
+  }
+  if (!start) { const e = new Error('start required'); e.status = 400; throw e; }
+
+  const user = await ensureUserByAcc(accId);
+
+  // kiểm tra xe thuộc về user
+  const vehicle = await Vehicle.findOne({ where: { id: vehicleId, user_id: user.id } });
+  if (!vehicle) { const e = new Error('Vehicle not found'); e.status = 404; throw e; }
+
+  // kiểm tra mechanic (nếu có)
+  if (mechanicId) {
+    const mech = await Emp.findOne({ where: { id: mechanicId } });
+    if (!mech) { const e = new Error('Mechanic not found'); e.status = 404; throw e; }
+  }
+
+  // tính thời lượng ban đầu
+  const services = await loadServices(serviceIds);
+  const { initialMin, hasRepair } = calcInitialDuration(services);
+
+  const startDt = dayjs.utc(start);
+  const endDt   = startDt.add(initialMin, 'minute');
+
+  // chống trùng nếu đã chỉ định thợ
+  await checkOverlap(mechanicId, startDt.toISOString(), endDt.toISOString());
+
+  // tạo booking + items (transaction nhẹ)
+  const booking = await Booking.create({
+    user_id: user.id,
+    mechanic_id: mechanicId || null,
+    vehicle_id: vehicle.id,
+    start_dt: startDt.toDate(),
+    end_dt: endDt.toDate(),
+    status: 'PENDING',
+    notes_user: notesUser || null
+  });
+
+  // lưu services snapshot
+  for (const s of services) {
+    await BookingService.create({
+      booking_id: booking.id,
+      service_id: s.id,
+      qty: 1,
+      price_snapshot: s.base_price,
+      duration_snapshot_min: s.type === 'QUICK' ? s.default_duration_min : null
+    });
+  }
+
+  // nếu có REPAIR → sau khi Admin approve, thợ sẽ chuyển `IN_DIAGNOSIS` rồi cập nhật lại `end_dt` dựa trên `labor_est_min`.
+  return { id: booking.id, status: booking.status, hasRepair, start_dt: booking.start_dt, end_dt: booking.end_dt };
+}
+
+async function listMyBookings(accId) {
+  const user = await ensureUserByAcc(accId);
+  return Booking.findAll({
+    where: { user_id: user.id },
+    order: [['id','DESC']],
+    include: [{ model: BookingService, include: [Service] }]
+  });
+}
+
+async function getMyBooking(accId, id) {
+  const user = await ensureUserByAcc(accId);
+  const b = await Booking.findOne({
+    where: { id, user_id: user.id },
+    include: [{ model: BookingService, include: [Service] }]
+  });
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+  return b;
+}
+
+async function cancelMyBooking(accId, id) {
+  const user = await ensureUserByAcc(accId);
+  const b = await Booking.findOne({ where: { id, user_id: user.id } });
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+  if (['IN_PROGRESS','DONE','CANCELED'].includes(b.status)) {
+    const e = new Error('Cannot cancel at this status'); e.status = 400; e.code = 'INVALID_STATE'; throw e;
+  }
+  b.status = 'CANCELED';
+  await b.save();
+  return { ok: true };
+}
+
+/** Tính tổng phút QUICK đã chọn trong booking */
+async function getQuickMinutes(bookingId) {
+  const rows = await BookingService.findAll({
+    where: { booking_id: bookingId },
+    include: [{ model: Service, attributes: ['type','default_duration_min'] }]
+  });
+  let quickMin = 0;
+  let hasRepair = false;
+  for (const r of rows) {
+    if (r.Service.type === 'QUICK') quickMin += (r.Service.default_duration_min || 0);
+    if (r.Service.type === 'REPAIR') hasRepair = true;
+  }
+  return { quickMin, hasRepair };
+}
+
+/** Lấy booking (kèm services) */
+async function getBookingById(id) {
+  return Booking.findOne({
+    where: { id },
+    include: [{ model: BookingService, include: [Service] }]
+  });
+}
+
+/** ADMIN: phê duyệt */
+async function adminApprove(bookingId) {
+  const b = await getBookingById(bookingId);
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+  if (['CANCELED','DONE'].includes(b.status)) {
+    const e = new Error('Cannot approve at this status'); e.status = 400; throw e;
+  }
+  b.status = 'APPROVED';
+  await b.save();
+  return b;
+}
+
+/** ADMIN: chỉ định thợ (assign) + chống trùng thời gian hiện có của booking */
+async function adminAssign(bookingId, mechanicId) {
+  const b = await getBookingById(bookingId);
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+  if (['CANCELED','DONE','IN_PROGRESS'].includes(b.status)) {
+    const e = new Error('Cannot assign at this status'); e.status = 400; throw e;
+  }
+  // kiểm tra thợ tồn tại
+  const mech = await Emp.findOne({ where: { id: mechanicId } });
+  if (!mech) { const e = new Error('Mechanic not found'); e.status = 404; throw e; }
+
+  // thời lượng hiện tại: nếu đã có end_dt -> dùng; nếu null, dùng placeholder
+  const { quickMin, hasRepair } = await getQuickMinutes(b.id);
+  const start = dayjs.utc(b.start_dt);
+  const end = b.end_dt
+    ? dayjs.utc(b.end_dt)
+    : start.add(quickMin + (hasRepair ? DIAGNOSIS_PLACEHOLDER_MIN : 0), 'minute');
+
+  // chống trùng
+  await checkOverlap(mechanicId, start.toISOString(), end.toISOString(), b.id);
+
+  b.mechanic_id = mechanicId;
+  await b.save();
+  return b;
+}
+
+/** MECHANIC: chẩn đoán – ghi phiếu + cập nhật end_dt = start + quickMin + laborEstMin; set status IN_DIAGNOSIS */
+async function mechanicDiagnose(bookingId, mechanicAccId, { diagnosisNote, etaMin, laborEstMin, requiredParts }) {
+  const b = await getBookingById(bookingId);
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+  if (!b.mechanic_id) { const e = new Error('Booking not assigned'); e.status = 400; throw e; }
+
+  // (khuyến nghị) Chỉ thợ được assign mới được chẩn đoán
+  const emp = await Emp.findOne({ where: { acc_id: mechanicAccId } });
+  if (!emp || emp.id !== b.mechanic_id) { const e = new Error('Forbidden'); e.status = 403; throw e; }
+
+  if (!['APPROVED','IN_DIAGNOSIS'].includes(b.status)) {
+    const e = new Error('Invalid state for diagnosis'); e.status = 400; throw e;
+  }
+
+  const { quickMin } = await getQuickMinutes(b.id);
+  const start = dayjs.utc(b.start_dt);
+  const end = start.add(quickMin + (laborEstMin || 0), 'minute');
+
+  // check overlap với thời lượng thực
+  await checkOverlap(b.mechanic_id, start.toISOString(), end.toISOString(), b.id);
+
+  // upsert Diagnosis
+  await Diagnosis.upsert({
+    booking_id: b.id,
+    diagnosis_note: diagnosisNote || '',
+    eta_min: etaMin ?? null,
+    labor_est_min: laborEstMin ?? null,
+    required_parts: requiredParts ?? null,
+    created_at: new Date()
+  });
+
+  // cập nhật booking
+  b.end_dt = end.toDate();
+  b.status = 'IN_DIAGNOSIS';
+  await b.save();
+
+  return b;
+}
+
+/** MECHANIC: bắt đầu làm – chuyển IN_PROGRESS (QUICK có thể start ngay sau APPROVED; REPAIR nên đã có IN_DIAGNOSIS trước) */
+async function mechanicStart(bookingId, mechanicAccId) {
+  const b = await getBookingById(bookingId);
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+  if (!b.mechanic_id) { const e = new Error('Booking not assigned'); e.status = 400; throw e; }
+  if (!['APPROVED','IN_DIAGNOSIS'].includes(b.status)) {
+    const e = new Error('Invalid state for start'); e.status = 400; throw e;
+  }
+
+  // Nếu là QUICK-only và end_dt đã có từ ban đầu, vẫn cần chống trùng một lần nữa ngay thời điểm start
+  const { quickMin, hasRepair } = await getQuickMinutes(b.id);
+  const start = dayjs.utc(b.start_dt);
+  const end = b.end_dt
+    ? dayjs.utc(b.end_dt)
+    : start.add(quickMin + (hasRepair ? DIAGNOSIS_PLACEHOLDER_MIN : 0), 'minute');
+
+  await checkOverlap(b.mechanic_id, start.toISOString(), end.toISOString(), b.id);
+
+  b.status = 'IN_PROGRESS';
+  await b.save();
+  return b;
+}
+
+/** MECHANIC: hoàn thành – DONE */
+async function mechanicComplete(bookingId, mechanicAccId) {
+  const b = await getBookingById(bookingId);
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+  if (b.status !== 'IN_PROGRESS') {
+    const e = new Error('Invalid state for complete'); e.status = 400; throw e;
+  }
+  b.status = 'DONE';
+  await b.save();
+  return b;
+}
+
+module.exports = { createBooking, listMyBookings, getMyBooking, cancelMyBooking, checkOverlap, adminApprove,
+  adminAssign,
+  mechanicDiagnose,
+  mechanicStart,
+  mechanicComplete,
+  getQuickMinutes, };
