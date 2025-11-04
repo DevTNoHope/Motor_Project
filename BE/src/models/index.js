@@ -7,6 +7,7 @@ const Emp  = require('./employee.model')(sequelize);
 
 const PartType = require('./partType.model')(sequelize);
 const Part = require('./part.model')(sequelize);
+const Service = require('./service.model')(sequelize);
 
 // Associations
 Acc.belongsTo(Role, { foreignKey: 'role_id' });
@@ -21,4 +22,4 @@ Emp.belongsTo(Acc, { foreignKey: 'acc_id' });
 Acc.hasOne(Emp, { foreignKey: 'acc_id' });
 
 
-module.exports = { sequelize, Role, Acc, User, Emp , PartType, Part };
+module.exports = { sequelize, Role, Acc, User, Emp , PartType, Part, Service };

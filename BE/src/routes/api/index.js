@@ -7,6 +7,7 @@ router.use('/me', require('./me.api'));
 router.use('/part-types', require('./partType.api'));
 router.use('/parts', require('./parts.api'));
 router.use('/employees', require('./employee.api'));
+router.use('/services', require('./services.api'));
 // TODO: sau này thêm:
 // router.use('/auth', require('./auth.api'));
 // router.use('/services', require('./services.api'));
