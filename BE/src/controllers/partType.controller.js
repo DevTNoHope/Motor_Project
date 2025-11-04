@@ -1,14 +1,8 @@
-const service = require('../services/service.service');
+const service = require('../services/partType.service');
 
 async function getAll(req, res, next) {
   try {
     res.json(await service.getAll());
-  } catch (e) { next(e); }
-}
-
-async function getById(req, res, next) {
-  try {
-    res.json(await service.getById(req.params.id));
   } catch (e) { next(e); }
 }
 
@@ -30,4 +24,4 @@ async function remove(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { getAll, getById, create, update, remove };
+module.exports = { getAll, create, update, remove };
