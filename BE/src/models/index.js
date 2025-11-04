@@ -11,9 +11,18 @@ const BookingService = require('./bookingService.model')(sequelize);
 const Diagnosis = require('./diagnosis.model')(sequelize);
 const Workshift = require('./workshift.model')(sequelize);
 
+const PartType = require('./partType.model')(sequelize);
+const Part = require('./part.model')(sequelize);
+const Service = require('./service.model')(sequelize);
+
+const PurchaseOrder = require('./purchaseOrder.model')(sequelize);
+const PurchaseOrderItem = require('./purchaseOrderItem.model')(sequelize);
+const Inventory = require('./inventory.model')(sequelize);
 // Associations
 Acc.belongsTo(Role, { foreignKey: 'role_id' });
 Role.hasMany(Acc,   { foreignKey: 'role_id' });
+
+Acc.hasOne(Emp, { foreignKey: 'acc_id' });
 
 User.belongsTo(Acc, { foreignKey: 'acc_id', onDelete: 'CASCADE' });
 Emp.belongsTo(Acc,  { foreignKey: 'acc_id', onDelete: 'CASCADE' });
@@ -37,4 +46,18 @@ Booking.hasOne(Diagnosis,    { foreignKey: 'booking_id' });
 Workshift.belongsTo(Emp, { foreignKey: 'mechanic_id', onDelete: 'CASCADE' });
 Emp.hasMany(Workshift,   { foreignKey: 'mechanic_id' });
 
-module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift };
+Part.belongsTo(PartType, { foreignKey: 'type_id' });
+PartType.hasMany(Part, { foreignKey: 'type_id' });
+
+PurchaseOrder.hasMany(PurchaseOrderItem, { foreignKey: 'po_id' });
+PurchaseOrderItem.belongsTo(PurchaseOrder, { foreignKey: 'po_id' });
+
+// --- ✅ Thêm liên kết Part <-> PurchaseOrderItem ---
+Part.hasMany(PurchaseOrderItem, { foreignKey: 'part_id' });
+PurchaseOrderItem.belongsTo(Part, { foreignKey: 'part_id' })
+
+Part.hasOne(Inventory, { foreignKey: 'part_id' });
+Inventory.belongsTo(Part, { foreignKey: 'part_id' });
+
+module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory };
+

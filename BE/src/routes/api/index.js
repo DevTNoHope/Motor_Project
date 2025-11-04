@@ -10,6 +10,12 @@ router.use('/mechanic/bookings', require('./mechanic.bookings.api'));
 router.use('/slots', require('./slots.api'));
 router.use('/diagnosis', require('./diagnosis.api'));
 router.use('/admin/workshifts', require('./admin.workshifts.api'));
+
+router.use('/part-types', require('./partType.api'));
+router.use('/parts', require('./parts.api'));
+router.use('/employees', require('./employee.api'));
+router.use('/services', require('./services.api'));
+router.use('/purchase-orders', require('./purchaseOrder.api'));
 // TODO: sau này thêm:
 // router.use('/auth', require('./auth.api'));
 // router.use('/services', require('./services.api'));
