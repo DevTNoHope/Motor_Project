@@ -13,7 +13,7 @@ const Workshift = require('./workshift.model')(sequelize);
 
 const PartType = require('./partType.model')(sequelize);
 const Part = require('./part.model')(sequelize);
-const Service = require('./service.model')(sequelize);
+
 
 const PurchaseOrder = require('./purchaseOrder.model')(sequelize);
 const PurchaseOrderItem = require('./purchaseOrderItem.model')(sequelize);
