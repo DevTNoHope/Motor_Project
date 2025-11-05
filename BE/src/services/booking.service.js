@@ -3,7 +3,7 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 dayjs.extend(utc);
 
-const { User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis } = require('../models');
+const { User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Part, Inventory, ServicePart, BookingPart, sequelize } = require('../models');
 const { isOverlap } = require('../utils/overlap');
 
 // cấu hình
@@ -264,40 +264,163 @@ async function mechanicDiagnose(bookingId, mechanicAccId, { diagnosisNote, etaMi
   return b;
 }
 
-/** MECHANIC: bắt đầu làm – chuyển IN_PROGRESS (QUICK có thể start ngay sau APPROVED; REPAIR nên đã có IN_DIAGNOSIS trước) */
-async function mechanicStart(bookingId, mechanicAccId) {
-  const b = await getBookingById(bookingId);
-  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
-  if (!b.mechanic_id) { const e = new Error('Booking not assigned'); e.status = 400; throw e; }
-  if (!['APPROVED','IN_DIAGNOSIS'].includes(b.status)) {
-    const e = new Error('Invalid state for start'); e.status = 400; throw e;
+// ==== Helpers cho parts & inventory ====
+
+// Gom phụ tùng cần dùng từ QUICK mapping + Diagnosis (REPAIR)
+// Trả [{ part_id, qty }]
+async function buildPartsNeeded(bookingId) {
+  const items = [];
+
+  // QUICK → từ Service_Parts
+  const bs = await BookingService.findAll({
+    where: { booking_id: bookingId },
+    include: [{ model: Service, attributes: ['id','type'] }]
+  });
+  const quickIds = bs.filter(x => x.Service.type === 'QUICK').map(x => x.service_id);
+  if (quickIds.length) {
+    const maps = await ServicePart.findAll({ where: { service_id: { [Op.in]: quickIds } } });
+    for (const m of maps) items.push({ part_id: m.part_id, qty: m.qty_per_service * 1 });
   }
 
-  // Nếu là QUICK-only và end_dt đã có từ ban đầu, vẫn cần chống trùng một lần nữa ngay thời điểm start
-  const { quickMin, hasRepair } = await getQuickMinutes(b.id);
-  const start = dayjs.utc(b.start_dt);
-  const end = b.end_dt
-    ? dayjs.utc(b.end_dt)
-    : start.add(quickMin + (hasRepair ? DIAGNOSIS_PLACEHOLDER_MIN : 0), 'minute');
+  // REPAIR → từ Diagnosis.required_parts (JSON)
+  const diag = await Diagnosis.findOne({ where: { booking_id: bookingId } });
+  if (diag && Array.isArray(diag.required_parts)) {
+    for (const rp of diag.required_parts) {
+      const pid = Number(rp.partId ?? rp.part_id);
+      const q = Number(rp.qty ?? rp.quantity ?? 0);
+      if (pid && q > 0) items.push({ part_id: pid, qty: q });
+    }
+  }
 
-  await checkOverlap(b.mechanic_id, start.toISOString(), end.toISOString(), b.id);
-
-  b.status = 'IN_PROGRESS';
-  await b.save();
-  return b;
+  // gộp theo part_id
+  const merged = new Map();
+  for (const it of items) merged.set(it.part_id, (merged.get(it.part_id) || 0) + it.qty);
+  return Array.from(merged, ([part_id, qty]) => ({ part_id, qty }));
 }
+
+// Tạo snapshot Booking_Parts nếu chưa có
+async function ensureBookingPartsSnapshot(bookingId, neededParts, t) {
+  const existing = await BookingPart.findAll({ where: { booking_id: bookingId }, transaction: t });
+  if (existing.length) return existing; // đã có -> dùng lại (idempotent)
+
+  const parts = await Part.findAll({ where: { id: { [Op.in]: neededParts.map(p => p.part_id) } }, transaction: t });
+  const priceMap = new Map(parts.map(p => [Number(p.id), Number(p.price || 0)]));
+
+  const rows = [];
+  for (const np of neededParts) {
+    rows.push(await BookingPart.create({
+      booking_id: bookingId,
+      part_id: np.part_id,
+      qty: np.qty,
+      price_snapshot: priceMap.get(Number(np.part_id)) ?? null
+    }, { transaction: t }));
+  }
+  return rows;
+}
+
+// Trừ kho theo danh sách Booking_Parts (atomic). Ném OUT_OF_STOCK nếu thiếu.
+async function deductInventory(bookingParts, t) {
+  for (const bp of bookingParts) {
+    const inv = await Inventory.findOne({ where: { part_id: bp.part_id }, lock: t.LOCK.UPDATE, transaction: t });
+    const current = Number(inv?.qty || 0);
+    if (current < bp.qty) {
+      const e = new Error(`Out of stock for part ${bp.part_id}`);
+      e.status = 409; e.code = 'OUT_OF_STOCK';
+      e.details = { part_id: bp.part_id, needed: bp.qty, available: current };
+      throw e;
+    }
+    await inv.update({ qty: current - bp.qty }, { transaction: t });
+  }
+}
+
+// Tính tổng tiền (dịch vụ + phụ tùng) từ snapshots
+async function computeTotals(bookingId, t) {
+  const services = await BookingService.findAll({ where: { booking_id: bookingId }, transaction: t });
+  const parts    = await BookingPart.findAll({ where: { booking_id: bookingId }, transaction: t });
+
+  const total_service_amount = services.reduce((sum, s) =>
+    sum + Number(s.price_snapshot || 0) * Number(s.qty || 1), 0);
+
+  const total_parts_amount = parts.reduce((sum, p) =>
+    sum + Number(p.price_snapshot || 0) * Number(p.qty || 0), 0);
+
+  return {
+    total_service_amount: Number(total_service_amount.toFixed(2)),
+    total_parts_amount:   Number(total_parts_amount.toFixed(2)),
+    total_amount:         Number((total_service_amount + total_parts_amount).toFixed(2))
+  };
+}
+
+/** MECHANIC: bắt đầu làm – chuyển IN_PROGRESS (QUICK có thể start ngay sau APPROVED; REPAIR nên đã có IN_DIAGNOSIS trước) */
+async function mechanicStart(bookingId, mechanicAccId) {
+  const t = await sequelize.transaction();
+  try {
+    const b = await Booking.findOne({ where: { id: bookingId }, transaction: t, lock: t.LOCK.UPDATE });
+    if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+    if (!b.mechanic_id) { const e = new Error('Booking not assigned'); e.status = 400; throw e; }
+    if (!['APPROVED','IN_DIAGNOSIS','IN_PROGRESS'].includes(b.status)) {
+      const e = new Error('Invalid state for start'); e.status = 400; throw e;
+    }
+
+    // chống trùng một lần nữa tại thời điểm start
+    const { quickMin, hasRepair } = await getQuickMinutes(b.id);
+    const start = dayjs.utc(b.start_dt);
+    const end = b.end_dt
+      ? dayjs.utc(b.end_dt)
+      : start.add(quickMin + (hasRepair ? DIAGNOSIS_PLACEHOLDER_MIN : 0), 'minute');
+
+    await checkOverlap(b.mechanic_id, start.toISOString(), end.toISOString(), b.id);
+
+    // Nếu chưa trừ kho -> trừ ngay bây giờ (idempotent qua cờ stock_deducted)
+    if (!b.stock_deducted) {
+      const needed = await buildPartsNeeded(b.id);
+      const bookingParts = await ensureBookingPartsSnapshot(b.id, needed, t);
+      await deductInventory(bookingParts, t);
+      b.stock_deducted = 1;
+    }
+
+    // set trạng thái
+    b.status = 'IN_PROGRESS';
+    await b.save({ transaction: t });
+
+    await t.commit();
+    return b;
+  } catch (e) {
+    await t.rollback();
+    throw e;
+  }
+}
+
 
 /** MECHANIC: hoàn thành – DONE */
 async function mechanicComplete(bookingId, mechanicAccId) {
-  const b = await getBookingById(bookingId);
-  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
-  if (b.status !== 'IN_PROGRESS') {
-    const e = new Error('Invalid state for complete'); e.status = 400; throw e;
+  const t = await sequelize.transaction();
+  try {
+    const b = await Booking.findOne({ where: { id: bookingId }, transaction: t, lock: t.LOCK.UPDATE });
+    if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+    if (b.status !== 'IN_PROGRESS') {
+      const e = new Error('Invalid state for complete'); e.status = 400; throw e;
+    }
+
+    // Tính tổng tiền từ snapshots (dịch vụ đã snapshot khi tạo, phụ tùng snapshot khi start)
+    const totals = await computeTotals(b.id, t);
+
+    b.status = 'DONE';
+    if ('total_service_amount' in b) {
+      b.total_service_amount = totals.total_service_amount;
+      b.total_parts_amount   = totals.total_parts_amount;
+      b.total_amount         = totals.total_amount;
+    }
+    await b.save({ transaction: t });
+
+    await t.commit();
+    return { ok:true, id:b.id, status:b.status, ...totals };
+  } catch (e) {
+    await t.rollback();
+    throw e;
   }
-  b.status = 'DONE';
-  await b.save();
-  return b;
 }
+
 
 module.exports = { createBooking, listMyBookings, getMyBooking, cancelMyBooking, checkOverlap, adminApprove,
   adminAssign,

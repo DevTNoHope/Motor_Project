@@ -10,11 +10,10 @@ const Booking = require('./booking.model')(sequelize);
 const BookingService = require('./bookingService.model')(sequelize);
 const Diagnosis = require('./diagnosis.model')(sequelize);
 const Workshift = require('./workshift.model')(sequelize);
-
+const ServicePart = require('./servicePart.model')(sequelize);
+const BookingPart = require('./bookingPart.model')(sequelize);
 const PartType = require('./partType.model')(sequelize);
 const Part = require('./part.model')(sequelize);
-
-
 const PurchaseOrder = require('./purchaseOrder.model')(sequelize);
 const PurchaseOrderItem = require('./purchaseOrderItem.model')(sequelize);
 const Inventory = require('./inventory.model')(sequelize);
@@ -61,5 +60,14 @@ PurchaseOrderItem.belongsTo(Part, { foreignKey: 'part_id' })
 Part.hasOne(Inventory, { foreignKey: 'part_id' });
 Inventory.belongsTo(Part, { foreignKey: 'part_id' });
 
-module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory, Supplier };
+BookingPart.belongsTo(Booking, { foreignKey: 'booking_id', onDelete: 'CASCADE' });
+Booking.hasMany(BookingPart,   { foreignKey: 'booking_id' });
+
+ServicePart.belongsTo(Service, { foreignKey: 'service_id' });
+Service.hasMany(ServicePart,   { foreignKey: 'service_id' });
+
+BookingPart.belongsTo(Part,    { foreignKey: 'part_id' });
+Part.hasMany(BookingPart,      { foreignKey: 'part_id' });
+
+module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory, ServicePart, BookingPart, Supplier };
 
