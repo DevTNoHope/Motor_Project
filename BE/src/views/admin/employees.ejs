@@ -1,0 +1,59 @@
+
+<!-- Nút thêm mới -->
+<div class="mb-4">
+  <a href="/admin/employees/new"
+     class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">
+     + Thêm thợ mới
+  </a>
+</div>
+
+<!-- Bảng danh sách -->
+<table class="w-full border border-slate-300 bg-white shadow-sm">
+  <thead class="bg-slate-100">
+    <tr>
+      <th class="p-2 border">#</th>
+      <th class="p-2 border text-center">Ảnh</th> <!-- ✅ thêm cột ảnh -->
+      <th class="p-2 border text-left">Tên</th>
+      <th class="p-2 border">Email</th>
+      <th class="p-2 border">SĐT</th>
+      <th class="p-2 border">Kỹ năng</th>
+      <th class="p-2 border">Ngày vào làm</th>
+      <th class="p-2 border">Hành động</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if (employees.length === 0) { %>
+      <tr><td colspan="7" class="text-center p-4 text-gray-500">Chưa có thợ nào</td></tr>
+    <% } else { %>
+      <% employees.forEach((emp, i) => { %>
+      <tr class="hover:bg-slate-50">
+        <td class="p-2 border text-center"><%= i + 1 %></td>
+         <!-- ✅ Ảnh đại diện -->
+        <td class="p-2 border text-center">
+          <% if (emp.Acc?.avatar_url) { %>
+            <img src="<%= emp.Acc.avatar_url %>" alt="Avatar"
+                 class="w-10 h-10 rounded-full object-cover inline-block border">
+          <% } else { %>
+            <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-sm">
+              <i class="fa fa-user"></i>
+            </div>
+          <% } %>
+        </td>
+        <td class="p-2 border"><%= emp.Acc?.name || '-' %></td>
+        <td class="p-2 border text-center"><%= emp.Acc?.email || '-' %></td>
+        <td class="p-2 border text-center"><%= emp.Acc?.phone || '-' %></td>
+        <td class="p-2 border"><%= emp.skill_tags || '-' %></td>
+        <td class="p-2 border text-center"><%= emp.hired_at || '-' %></td>
+        <td class="p-2 border text-center">
+          <a href="/admin/employees/<%= emp.id %>/edit"
+             class="text-blue-600 hover:underline">Sửa</a>
+          <form action="/admin/employees/<%= emp.id %>?_method=DELETE" method="POST" class="inline">
+            <button type="submit" class="text-red-600 hover:underline ml-2"
+                    onclick="return confirm('Xóa thợ này?')">Xóa</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    <% } %>
+  </tbody>
+</table>
