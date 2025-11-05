@@ -17,6 +17,7 @@ const Part = require('./part.model')(sequelize);
 const PurchaseOrder = require('./purchaseOrder.model')(sequelize);
 const PurchaseOrderItem = require('./purchaseOrderItem.model')(sequelize);
 const Inventory = require('./inventory.model')(sequelize);
+const Supplier = require('./supplier.model')(sequelize);
 
 // Associations
 Acc.belongsTo(Role, { foreignKey: 'role_id' });
@@ -68,5 +69,5 @@ Service.hasMany(ServicePart,   { foreignKey: 'service_id' });
 BookingPart.belongsTo(Part,    { foreignKey: 'part_id' });
 Part.hasMany(BookingPart,      { foreignKey: 'part_id' });
 
-module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory, ServicePart, BookingPart };
+module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory, ServicePart, BookingPart, Supplier };
 

@@ -1,7 +1,69 @@
-<div class="space-y-4">
-  <h1 class="text-2xl font-semibold">Dashboard</h1>
-  <p>
-    Backend đã khởi chạy. Mở <code>/api/v1/health/db</code> để kiểm tra kết nối
-    Database.
-  </p>
+<div class="space-y-8">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-semibold text-slate-800">Bảng điều khiển</h1>
+    <p class="text-slate-500 text-sm">
+      Xin chào, <%= currentUser?.name || 'Admin' %> 👋
+    </p>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Thợ sửa xe</span>
+      <span class="text-2xl font-semibold text-emerald-600"><%= stats.mechanics %></span>
+    </div>
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Dịch vụ</span>
+      <span class="text-2xl font-semibold text-indigo-600"><%= stats.services %></span>
+    </div>
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Phụ tùng</span>
+      <span class="text-2xl font-semibold text-amber-600"><%= stats.parts %></span>
+    </div>
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Loại phụ tùng</span>
+      <span class="text-2xl font-semibold text-purple-600"><%= stats.partTypes %></span>
+    </div>
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Nhà cung cấp</span>
+      <span class="text-2xl font-semibold text-pink-600"><%= stats.suppliers %></span>
+    </div>
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Phiếu nhập hàng</span>
+      <span class="text-2xl font-semibold text-lime-600"><%= stats.purchaseOrders %></span>
+    </div>
+  </div>
+
+  <!-- Management Links -->
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+    <% const links = [
+      { title: 'Quản lý Thợ sửa xe', icon: '🧰', href: '/admin/employees', color: 'bg-emerald-500' },
+      { title: 'Quản lý Dịch vụ', icon: '🛠️', href: '/admin/services', color: 'bg-indigo-500' },
+      { title: 'Quản lý Phụ tùng', icon: '⚙️', href: '/admin/parts', color: 'bg-amber-500' },
+      { title: 'Loại phụ tùng', icon: '📦', href: '/admin/part-types', color: 'bg-purple-500' },
+      { title: 'Nhà cung cấp', icon: '🏢', href: '/admin/suppliers', color: 'bg-pink-500' },
+      { title: 'Phiếu nhập hàng', icon: '🧾', href: '/admin/purchase-orders', color: 'bg-lime-500' }
+    ]; %>
+
+    <% links.forEach(link => { %>
+      <a href="<%= link.href %>" class="group block bg-white rounded-xl shadow hover:shadow-lg transition p-6 border border-slate-100 hover:-translate-y-1">
+        <div class="flex items-center space-x-4">
+          <div class="<%= link.color %> text-white text-3xl w-14 h-14 flex items-center justify-center rounded-xl shadow">
+            <%= link.icon %>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-slate-800 group-hover:text-emerald-600 transition">
+              <%= link.title %>
+            </h2>
+            <p class="text-slate-500 text-sm mt-1">Nhấn để mở trang quản lý</p>
+          </div>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+
+  <div class="text-center text-sm text-slate-500 mt-8">
+    <p>🚗 Hệ thống quản lý cửa hàng sửa xe máy</p>
+    <p class="mt-1">© 2025 - Đồ án chuyên ngành</p>
+  </div>
 </div>
