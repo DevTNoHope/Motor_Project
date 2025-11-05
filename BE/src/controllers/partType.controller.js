@@ -23,5 +23,12 @@ async function remove(req, res, next) {
     res.json(await service.remove(req.params.id));
   } catch (e) { next(e); }
 }
+async function getById(req, res, next) {
+  try {
+    const data = await service.getById(req.params.id);
+    if (!data) return res.status(404).json({ message: 'PartType not found' });
+    res.json(data);
+  } catch (err) { next(err); }
+}
 
-module.exports = { getAll, create, update, remove };
+module.exports = { getAll, create, update, remove, getById };

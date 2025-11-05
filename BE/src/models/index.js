@@ -61,5 +61,11 @@ PurchaseOrderItem.belongsTo(Part, { foreignKey: 'part_id' })
 Part.hasOne(Inventory, { foreignKey: 'part_id' });
 Inventory.belongsTo(Part, { foreignKey: 'part_id' });
 
-module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory, Supplier };
+// --- ✅ Thêm liên kết PurchaseOrder <-> Supplier ---
+PurchaseOrder.belongsTo(Supplier, { foreignKey: 'supplier_id' });
+Supplier.hasMany(PurchaseOrder, { foreignKey: 'supplier_id' });
+
+
+module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder,
+     PurchaseOrderItem, Inventory, Supplier };
 

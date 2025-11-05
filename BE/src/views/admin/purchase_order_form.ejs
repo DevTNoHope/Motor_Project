@@ -1,0 +1,137 @@
+<h1 class="text-2xl font-semibold mb-4"><%= formTitle %></h1>
+
+<form action="<%= formAction %>" method="POST" class="bg-white p-6 rounded shadow space-y-4">
+  <% if (method === 'PATCH') { %>
+    <input type="hidden" name="_method" value="PATCH">
+  <% } %>
+
+  <% const isReadOnly = po?.status === 'RECEIVED'; %>
+
+  <div>
+    <label class="block mb-1 font-medium">Nhà cung cấp</label>
+    <select name="supplier_id" required class="border p-2 rounded w-full" <%= isReadOnly ? 'disabled' : '' %>>
+      <option value="">-- Chọn nhà cung cấp --</option>
+      <% suppliers.forEach(s => { %>
+        <option value="<%= s.id %>" <%= po?.supplier_id === s.id ? 'selected' : '' %>><%= s.name %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div>
+    <label class="block mb-1 font-medium">Ghi chú</label>
+    <textarea name="note" class="border p-2 rounded w-full" <%= isReadOnly ? 'readonly' : '' %>><%= po?.note || '' %></textarea>
+  </div>
+
+  <% if (po?.status) { %>
+    <p class="text-sm text-slate-500">
+      Trạng thái: 
+      <span class="<%= po.status === 'RECEIVED' ? 'text-emerald-600' : 'text-amber-600' %> font-semibold">
+        <%= po.status %>
+      </span>
+    </p>
+  <% } %>
+
+  <hr>
+
+<div>
+  <label class="block font-medium mb-2">Danh sách phụ tùng nhập</label>
+  <div id="items">
+    <% (po?.PurchaseOrderItems || [{}]).forEach((item, idx) => { %>
+      <div class="grid grid-cols-4 gap-2 mb-2 item-row">
+        <select name="items[<%= idx %>][part_id]" class="border p-2 rounded part-select" required <%= isReadOnly ? 'disabled' : '' %>>
+          <option value="">-- Chọn phụ tùng --</option>
+          <% parts.forEach(p => { %>
+            <option value="<%= p.id %>" <%= item.part_id === p.id ? 'selected' : '' %>><%= p.name %></option>
+          <% }) %>
+        </select>
+
+        <input type="number" name="items[<%= idx %>][qty]" 
+               value="<%= item.qty || 1 %>" class="border p-2 rounded" placeholder="Số lượng" min="1"
+               <%= isReadOnly ? 'readonly' : '' %>>
+
+        <input type="number" name="items[<%= idx %>][cost_price]" 
+               value="<%= item.cost_price || '' %>" class="border p-2 rounded" placeholder="Giá nhập"
+               <%= isReadOnly ? 'readonly' : '' %>>
+
+        <% if (!isReadOnly) { %>
+          <button type="button" class="remove-item bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">🗑</button>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+
+  <% if (!isReadOnly) { %>
+    <button type="button" id="addItem" 
+            class="mt-2 px-3 py-1 bg-emerald-100 rounded text-emerald-700 hover:bg-emerald-200">
+      + Thêm phụ tùng
+    </button>
+  <% } %>
+</div>
+
+
+  <div class="flex gap-3 mt-6">
+    <% if (!isReadOnly) { %>
+      <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
+        Lưu
+      </button>
+    <% } %>
+    <a href="/admin/purchase-orders" class="px-4 py-2 rounded border hover:bg-slate-100">Quay lại</a>
+  </div>
+</form>
+
+<% if (!isReadOnly) { %>
+<script>
+  // 🚫 Không cho chọn trùng phụ tùng
+  function refreshOptions() {
+    const selectedIds = Array.from(document.querySelectorAll('.part-select'))
+      .map(sel => sel.value)
+      .filter(v => v);
+    document.querySelectorAll('.part-select').forEach(sel => {
+      Array.from(sel.options).forEach(opt => {
+        if (opt.value && selectedIds.includes(opt.value) && opt.value !== sel.value) {
+          opt.disabled = true;
+        } else {
+          opt.disabled = false;
+        }
+      });
+    });
+  }
+
+  // ➕ Thêm dòng mới
+  document.getElementById('addItem')?.addEventListener('click', () => {
+    const container = document.getElementById('items');
+    const idx = container.querySelectorAll('.item-row').length;
+    const div = document.createElement('div');
+    div.className = 'grid grid-cols-4 gap-2 mb-2 item-row';
+    div.innerHTML = `
+      <select name="items[${idx}][part_id]" class="border p-2 rounded part-select" required>
+        <option value="">-- Chọn phụ tùng --</option>
+        <% parts.forEach(p => { %>
+          <option value="<%= p.id %>"><%= p.name %></option>
+        <% }) %>
+      </select>
+      <input type="number" name="items[${idx}][qty]" value="1" class="border p-2 rounded" min="1">
+      <input type="number" name="items[${idx}][cost_price]" class="border p-2 rounded" placeholder="Giá nhập">
+      <button type="button" class="remove-item bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">🗑</button>
+    `;
+    container.appendChild(div);
+    refreshOptions();
+  });
+
+  // ❌ Xóa dòng
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('remove-item')) {
+      e.target.closest('.item-row').remove();
+      refreshOptions();
+    }
+  });
+
+  // 🔁 Làm mới khi thay đổi chọn phụ tùng
+  document.addEventListener('change', e => {
+    if (e.target.classList.contains('part-select')) refreshOptions();
+  });
+
+  // Khởi tạo
+  refreshOptions();
+</script>
+<% } %>
