@@ -23,14 +23,33 @@ async function diagnose(req, res, next) {
 async function start(req, res, next) {
   try {
     const b = await svc.mechanicStart(req.params.id, req.user.accId);
-    res.json({ ok:true, id:b.id, status:b.status });
+    res.json({
+      ok: true,
+      id: b.id,
+      status: b.status,
+      mechanic_id: b.mechanic_id,
+      stock_deducted: b.stock_deducted,
+      message: b.stock_deducted
+        ? 'Booking started and inventory deducted.'
+        : 'Booking started (inventory was already deducted).'
+    });
   } catch (e) { next(e); }
 }
 
 async function complete(req, res, next) {
   try {
-    const b = await svc.mechanicComplete(req.params.id, req.user.accId);
-    res.json({ ok:true, id:b.id, status:b.status });
+    const result = await svc.mechanicComplete(req.params.id, req.user.accId);
+    res.json({
+      ok: true,
+      id: result.id,
+      status: result.status,
+      totals: {
+        service: result.total_service_amount,
+        parts: result.total_parts_amount,
+        total: result.total_amount
+      },
+      message: 'Booking completed successfully.'
+    });
   } catch (e) { next(e); }
 }
 

@@ -13,5 +13,12 @@ module.exports = (sequelize) =>
     },
     notes_user: { type: DataTypes.TEXT, allowNull: true },
     notes_mechanic: { type: DataTypes.TEXT, allowNull: true },
+     // Tổng tiền (cho thanh toán)
+    total_service_amount: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+    total_parts_amount:   { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+    total_amount:         { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+
+    // Cờ trừ kho
+    stock_deducted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   }, { tableName: 'Bookings', timestamps: false });
