@@ -1,10 +1,13 @@
-const { PurchaseOrder, PurchaseOrderItem, Inventory, Part } = require('../models');
+const { PurchaseOrder, PurchaseOrderItem, Inventory, Part, Supplier } = require('../models');
 const { sequelize } = require('../config/db');
 
 // ✅ Lấy tất cả phiếu nhập
 async function getAll() {
   return PurchaseOrder.findAll({
-    include: [{ model: PurchaseOrderItem, include: [Part] }],
+    include: [
+      { model: Supplier, attributes: ['id', 'name','contact_phone'] }, // 👈 Thêm dòng này
+      { model: PurchaseOrderItem, include: [Part] }
+    ],
     order: [['id', 'DESC']]
   });
 }
@@ -12,7 +15,10 @@ async function getAll() {
 // ✅ Lấy chi tiết phiếu nhập
 async function getById(id) {
   const po = await PurchaseOrder.findByPk(id, {
-    include: [{ model: PurchaseOrderItem, include: [Part] }]
+    include: [
+      { model: Supplier, attributes: ['id', 'name', 'contact_phone', 'address'] }, // 👈 Thêm dòng này
+      { model: PurchaseOrderItem, include: [Part] }
+    ]
   });
   if (!po) throw Object.assign(new Error('Không tìm thấy đơn đặt hàng'), { status: 404 });
   return po;
@@ -47,7 +53,7 @@ async function create(data) {
   }
 }
 
-// ✅ Cập nhật phiếu (sửa note hoặc items nếu vẫn ở DRAFT)
+// ✅ Cập nhật phiếu (chỉ khi DRAFT)
 async function update(id, data) {
   const po = await PurchaseOrder.findByPk(id);
   if (!po) throw Object.assign(new Error('Không tìm thấy đơn đặt hàng'), { status: 404 });
@@ -100,7 +106,7 @@ async function receive(id) {
   }
 }
 
-// ✅ Xóa phiếu nhập
+// ✅ Xóa phiếu nhập (chỉ khi DRAFT)
 async function remove(id) {
   const po = await PurchaseOrder.findByPk(id);
   if (!po) throw Object.assign(new Error('Purchase order not found'), { status: 404 });
