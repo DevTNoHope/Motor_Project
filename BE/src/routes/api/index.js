@@ -16,6 +16,8 @@ router.use('/parts', require('./parts.api'));
 router.use('/employees', require('./employee.api'));
 router.use('/services', require('./services.api'));
 router.use('/purchase-orders', require('./purchaseOrder.api'));
+router.use('/admin/service-parts', require('./admin.serviceParts.api'));
+
 router.use('/suppliers', require('./supplier.api'));
 // TODO: sau này thêm:
 // router.use('/auth', require('./auth.api'));
