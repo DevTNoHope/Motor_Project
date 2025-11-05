@@ -1,0 +1,45 @@
+<% layout('layouts/admin') %>
+<h1 class="text-2xl font-semibold mb-4">Phiếu nhập hàng</h1>
+
+<div class="mb-4">
+  <a href="/admin/purchase-orders/new"
+     class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">
+     + Tạo phiếu nhập mới
+  </a>
+</div>
+
+<table class="w-full border border-slate-300 bg-white">
+  <thead class="bg-slate-100">
+    <tr>
+      <th class="p-2 border">#</th>
+      <th class="p-2 border">Nhà cung cấp</th>
+      <th class="p-2 border">Người lập</th>
+      <th class="p-2 border">Ngày tạo</th>
+      <th class="p-2 border">Trạng thái</th>
+      <th class="p-2 border">Hành động</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% orders.forEach((po, i) => { %>
+    <tr class="hover:bg-slate-50">
+      <td class="p-2 border text-center"><%= i + 1 %></td>
+      <td class="p-2 border"><%= po.supplier?.name || 'N/A' %></td>
+      <td class="p-2 border"><%= po.created_by_name || 'Admin' %></td>
+      <td class="p-2 border text-center"><%= po.created_at.toLocaleString() %></td>
+      <td class="p-2 border text-center">
+        <%= po.status === 'DRAFT' ? '📝 DRAFT' :
+            po.status === 'RECEIVED' ? '✅ RECEIVED' : '❌ CANCELED' %>
+      </td>
+      <td class="p-2 border text-center">
+        <a href="/admin/purchase-orders/<%= po.id %>" class="text-blue-600 hover:underline">Chi tiết</a>
+        <% if (po.status === 'DRAFT') { %>
+        <form action="/admin/purchase-orders/<%= po.id %>?_method=DELETE" method="POST" class="inline">
+          <button class="text-red-600 hover:underline ml-2"
+                  onclick="return confirm('Xóa phiếu này?')">Xóa</button>
+        </form>
+        <% } %>
+      </td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
