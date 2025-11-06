@@ -260,5 +260,95 @@ router.delete('/admin/services/:id', requireAdmin, async (req, res, next) => {
     next(err);
   }
 });
+// ==================== SERVICE ↔ PARTS (QUICK) ==================== //
 
+// Trang quản lý phụ tùng của 1 dịch vụ QUICK
+router.get('/admin/services/:sid/parts', requireAdmin, async (req, res, next) => {
+  try {
+    const sid = parseInt(req.params.sid, 10);
+    const service = await Service.findByPk(sid);
+    if (!service) return res.status(404).send('Service not found');
+    if (service.type !== 'QUICK') return res.status(400).send('Chỉ áp dụng cho dịch vụ QUICK');
+
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1`;
+    const token = req.cookies?.token;
+
+    // lấy mapping qua API admin/service-parts
+    const { data: mappings } = await axios.get(
+      `${baseURL}/admin/service-parts?serviceId=${sid}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // danh sách phụ tùng để chọn
+    const parts = await Part.findAll({ order: [['name', 'ASC']] });
+
+    res.render('admin/services/parts', {
+      layout: 'layouts/admin',
+      title: `Phụ tùng cho: ${service.name}`,
+      service,
+      mappings,
+      parts
+    });
+  } catch (err) { next(err); }
+});
+
+// Thêm mapping service ↔ part
+router.post('/admin/services/:sid/parts', requireAdmin, async (req, res) => {
+  try {
+    const sid = parseInt(req.params.sid, 10);
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1`;
+    const token = req.cookies?.token;
+
+    // nhận form (x-www-form-urlencoded hoặc JSON đều được)
+    const { part_id, qty_per_service } = req.body;
+
+    await axios.post(`${baseURL}/admin/service-parts`, {
+      service_id: sid,
+      part_id: Number(part_id),
+      qty_per_service: Number(qty_per_service)
+    }, { headers: { Authorization: `Bearer ${token}` } });
+
+    res.redirect(`/admin/services/${sid}/parts`);
+  } catch (e) {
+    res.status(e.response?.status || 500).send(e.response?.data || e.message);
+  }
+});
+
+// Sửa mapping (đổi qty hoặc part)
+router.patch('/admin/services/:sid/parts/:id', requireAdmin, async (req, res) => {
+  try {
+    const { sid, id } = req.params;
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1`;
+    const token = req.cookies?.token;
+
+    const payload = {};
+    if (req.body.part_id) payload.part_id = Number(req.body.part_id);
+    if (req.body.qty_per_service) payload.qty_per_service = Number(req.body.qty_per_service);
+
+    await axios.patch(`${baseURL}/admin/service-parts/${id}`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    res.redirect(`/admin/services/${sid}/parts`);
+  } catch (e) {
+    res.status(e.response?.status || 500).send(e.response?.data || e.message);
+  }
+});
+
+// Xóa mapping
+router.delete('/admin/services/:sid/parts/:id', requireAdmin, async (req, res) => {
+  try {
+    const { sid, id } = req.params;
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1`;
+    const token = req.cookies?.token;
+
+    await axios.delete(`${baseURL}/admin/service-parts/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    res.redirect(`/admin/services/${sid}/parts`);
+  } catch (e) {
+    res.status(e.response?.status || 500).send(e.response?.data || e.message);
+  }
+});
 module.exports = router;
