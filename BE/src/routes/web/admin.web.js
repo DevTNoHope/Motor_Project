@@ -669,5 +669,125 @@ router.delete('/admin/purchase-orders/:id', requireAdmin, async (req, res, next)
     res.redirect('/admin/purchase-orders');
   } catch (err) { next(err); }
 });
+// ==================== QUẢN LÝ CA LÀM VIỆC ==================== //
+
+router.get('/admin/workshifts', requireAdmin, async (req, res, next) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1/admin`;
+    const token = req.cookies?.token;
+
+    const { data } = await axios.get(`${baseURL}/workshifts`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    res.render('admin/workshifts', {
+      layout: 'layouts/admin',
+      title: 'Quản lý Ca làm việc',
+      workshifts: data
+    });
+  } catch (err) { next(err); }
+});
+
+// Form thêm ca làm việc
+router.get('/admin/workshifts/new', requireAdmin, async (req, res, next) => {
+  try {
+    const mechanics = await Emp.findAll({ include: 'Acc' });
+    res.render('admin/workshift_form', {
+      layout: 'layouts/admin',
+      title: 'Thêm ca làm việc',
+      formTitle: 'Thêm ca làm việc mới',
+      formAction: '/admin/workshifts',
+      method: 'POST',
+      workshift: null,
+      mechanics
+    });
+  } catch (err) { next(err); }
+});
+
+// Tạo ca làm việc
+router.post('/admin/workshifts', requireAdmin, async (req, res, next) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1/admin`;
+    const token = req.cookies?.token;
+
+    // chuyển time thành phút
+    const [startH, startM] = req.body.start_time.split(':').map(Number);
+    const [endH, endM] = req.body.end_time.split(':').map(Number);
+
+    const payload = {
+      mechanic_id: parseInt(req.body.mechanic_id, 10),
+      work_date: req.body.work_date,
+      start_min: startH * 60 + startM,
+      end_min: endH * 60 + endM,
+      step_min: parseInt(req.body.step_min, 10)
+    };
+
+    await axios.post(`${baseURL}/workshifts`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    res.redirect('/admin/workshifts');
+  } catch (err) { next(err); }
+});
+
+// Form sửa
+router.get('/admin/workshifts/:id/edit', requireAdmin, async (req, res, next) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1/admin`;
+    const token = req.cookies?.token;
+    const [workshiftRes, mechanics] = await Promise.all([
+      axios.get(`${baseURL}/workshifts?mechanicId=`, { headers: { Authorization: `Bearer ${token}` } }),
+      Emp.findAll({ include: 'Acc' })
+    ]);
+
+    const workshift = workshiftRes.data.find(w => w.id === parseInt(req.params.id, 10));
+
+    res.render('admin/workshift_form', {
+      layout: 'layouts/admin',
+      title: 'Sửa ca làm việc',
+      formTitle: 'Sửa ca làm việc',
+      formAction: `/admin/workshifts/${req.params.id}`,
+      method: 'PATCH',
+      workshift,
+      mechanics
+    });
+  } catch (err) { next(err); }
+});
+
+// Cập nhật ca
+router.patch('/admin/workshifts/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1/admin`;
+    const token = req.cookies?.token;
+
+    const [startH, startM] = req.body.start_time.split(':').map(Number);
+    const [endH, endM] = req.body.end_time.split(':').map(Number);
+
+    const payload = {
+      mechanic_id: parseInt(req.body.mechanic_id, 10),
+      work_date: req.body.work_date,
+      start_min: startH * 60 + startM,
+      end_min: endH * 60 + endM,
+      step_min: parseInt(req.body.step_min, 10)
+    };
+
+    await axios.patch(`${baseURL}/workshifts/${req.params.id}`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    res.redirect('/admin/workshifts');
+  } catch (err) { next(err); }
+});
+
+// Xóa ca làm việc
+router.delete('/admin/workshifts/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const baseURL = `${req.protocol}://${req.get('host')}/api/v1/admin`;
+    const token = req.cookies?.token;
+    await axios.delete(`${baseURL}/workshifts/${req.params.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    res.redirect('/admin/workshifts');
+  } catch (err) { next(err); }
+});
 
 module.exports = router;
