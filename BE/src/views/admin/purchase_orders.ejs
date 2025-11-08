@@ -25,7 +25,8 @@
         <tr class="hover:bg-slate-50">
           <td class="p-2 border text-center"><%= i + 1 %></td>
           <td class="p-2 border"><%= o.Supplier?.name || '-' %></td>
-          <td class="p-2 border"><%= o.note || '-' %></td>
+          <td class="p-2 border"><%- o.note || '-' %></td>
+
           <td class="p-2 border text-center">
             <span class="px-2 py-1 text-xs rounded <%= o.status === 'RECEIVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' %>">
               <%= o.status %>
