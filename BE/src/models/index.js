@@ -60,6 +60,11 @@ PurchaseOrderItem.belongsTo(Part, { foreignKey: 'part_id' })
 Part.hasOne(Inventory, { foreignKey: 'part_id' });
 Inventory.belongsTo(Part, { foreignKey: 'part_id' });
 
+// --- ✅ Thêm liên kết PurchaseOrder <-> Supplier ---
+PurchaseOrder.belongsTo(Supplier, { foreignKey: 'supplier_id' });
+Supplier.hasMany(PurchaseOrder, { foreignKey: 'supplier_id' });
+
+
 BookingPart.belongsTo(Booking, { foreignKey: 'booking_id', onDelete: 'CASCADE' });
 Booking.hasMany(BookingPart,   { foreignKey: 'booking_id' });
 

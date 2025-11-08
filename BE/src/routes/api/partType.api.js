@@ -5,6 +5,7 @@ const ctrl = require('../../controllers/partType.controller');
 router.use(verifyJWT, requireRole('ADMIN'));
 router.get('/', ctrl.getAll);
 router.post('/', ctrl.create);
+router.get('/:id', ctrl.getById);   // ✅ thêm dòng này
 router.patch('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 

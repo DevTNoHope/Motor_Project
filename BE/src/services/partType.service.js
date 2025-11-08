@@ -3,7 +3,9 @@ const { PartType } = require('../models');
 async function getAll() {
   return PartType.findAll();
 }
-
+async function getById(id) {             // ✅ thêm hàm này
+  return PartType.findByPk(id);
+}
 async function create(data) {
   return PartType.create(data);
 }
@@ -21,4 +23,4 @@ async function remove(id) {
   return { message: 'Deleted successfully' };
 }
 
-module.exports = { getAll, create, update, remove };
+module.exports = { getAll, create, update, remove , getById};  // ✅ xuất hàm này
