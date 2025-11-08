@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-50">
+    <div class="max-w-4xl mx-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-2xl font-semibold">
+          Phụ tùng cho: <%= service.name %>
+        </h1>
+        <a href="/admin/services" class="text-sm text-blue-600 hover:underline"
+          >← Quay lại dịch vụ</a
+        >
+      </div>
+
+      <!-- Form thêm mapping -->
+      <div class="bg-white rounded shadow p-4 mb-6">
+        <h2 class="font-medium mb-3">Thêm phụ tùng cho dịch vụ QUICK</h2>
+        <form
+          action="/admin/services/<%= service.id %>/parts"
+          method="POST"
+          class="grid grid-cols-1 md:grid-cols-3 gap-3"
+        >
+          <div>
+            <label class="block text-sm mb-1">Chọn phụ tùng</label>
+            <select name="part_id" required class="w-full border rounded p-2">
+              <option value="">-- chọn --</option>
+              <% parts.forEach(p => { %>
+              <option value="<%= p.id %>">
+                <%= p.name %> (ID: <%= p.id %>)
+              </option>
+              <% }) %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Số lượng / 1 dịch vụ</label>
+            <input
+              type="number"
+              name="qty_per_service"
+              min="1"
+              value="1"
+              class="w-full border rounded p-2"
+              required
+            />
+          </div>
+          <div class="flex items-end">
+            <button
+              class="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 w-full"
+            >
+              Thêm
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Bảng mapping hiện có -->
+      <div class="bg-white rounded shadow p-4">
+        <h2 class="font-medium mb-3">Danh sách phụ tùng đã gắn</h2>
+
+        <table class="w-full border border-slate-300">
+          <thead class="bg-slate-100">
+            <tr>
+              <th class="p-2 border">#</th>
+              <th class="p-2 border">Part ID</th>
+              <th class="p-2 border">Tên phụ tùng</th>
+              <th class="p-2 border">Số lượng / dịch vụ</th>
+              <th class="p-2 border">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!mappings.length) { %>
+            <tr>
+              <td colspan="5" class="p-4 text-center text-slate-500">
+                Chưa có phụ tùng
+              </td>
+            </tr>
+            <% } %> <% mappings.forEach((m, idx) => { const p = parts.find(x =>
+            x.id === m.part_id); %>
+            <tr class="hover:bg-slate-50">
+              <td class="p-2 border text-center"><%= idx + 1 %></td>
+              <td class="p-2 border text-center"><%= m.part_id %></td>
+              <td class="p-2 border"><%= p ? p.name : '-' %></td>
+              <td class="p-2 border text-center">
+                <form
+                  action="/admin/services/<%= service.id %>/parts/<%= m.id %>"
+                  method="POST"
+                  class="flex items-center justify-center gap-2"
+                >
+                  <input type="hidden" name="_method" value="PATCH" />
+                  <input
+                    type="number"
+                    name="qty_per_service"
+                    min="1"
+                    value="<%= m.qty_per_service %>"
+                    class="w-24 border rounded p-1 text-center"
+                  />
+                  <button
+                    class="px-2 py-1 text-sm bg-blue-600 text-white rounded"
+                  >
+                    Lưu
+                  </button>
+                </form>
+              </td>
+              <td class="p-2 border text-center">
+                <form
+                  action="/admin/services/<%= service.id %>/parts/<%= m.id %>"
+                  method="POST"
+                  class="inline"
+                >
+                  <input type="hidden" name="_method" value="DELETE" />
+                  <button
+                    class="text-red-600 hover:underline"
+                    onclick="return confirm('Xóa phụ tùng này khỏi dịch vụ?')"
+                  >
+                    Xóa
+                  </button>
+                </form>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
