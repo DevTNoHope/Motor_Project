@@ -3,7 +3,7 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 dayjs.extend(utc);
 
-const { User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Part, Inventory, ServicePart, BookingPart, sequelize } = require('../models');
+const { Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Part, Inventory, ServicePart, BookingPart, sequelize } = require('../models');
 const { isOverlap } = require('../utils/overlap');
 
 // cấu hình
@@ -421,10 +421,80 @@ async function mechanicComplete(bookingId, mechanicAccId) {
   }
 }
 
+async function adminListBookings({ status, dateFrom, dateTo, mechanicId, page=1, size=20 }) {
+  const where = {};
+  if (status) where.status = status;
+  if (mechanicId) where.mechanic_id = mechanicId;
+  if (dateFrom || dateTo) {
+    where.start_dt = {};
+    if (dateFrom) where.start_dt[Op.gte] = new Date(dateFrom);
+    if (dateTo)   where.start_dt[Op.lte] = new Date(dateTo);
+  }
+
+  const offset = (Math.max(1, +page) - 1) * Math.max(1, +size);
+  const limit  = Math.max(1, +size);
+
+  const { rows, count } = await Booking.findAndCountAll({
+    where,
+    include: [
+      // User + Acc (lấy name/phone từ Accs)
+      {
+        model: User,
+        attributes: ['id','acc_id'],
+        include: [{ model: Acc, attributes: ['name','phone'] }]
+      },
+      // Mechanic (Employee) + Acc (lấy name)
+      {
+        model: Emp,
+        attributes: ['id','acc_id'],
+        include: [{ model: Acc, attributes: ['name'] }]
+      },
+      // Vehicle: dùng plate_no, model, brand...
+      {
+        model: Vehicle,
+        attributes: ['id','plate_no','brand','model']
+      },
+      // BookingServices + Service
+      {
+        model: BookingService,
+        attributes: ['id','qty','price_snapshot','duration_snapshot_min'],
+        include: [{ model: Service, attributes: ['id','name','type'] }]
+      }
+    ],
+    order: [['start_dt', 'ASC']],
+    offset, limit
+  });
+
+  return {
+    items: rows,
+    page: +page, size: +size,
+    total: count, pages: Math.ceil(count/limit)
+  };
+}
+
+async function adminCancel(bookingId, reason) {
+  const b = await Booking.findByPk(bookingId);
+  if (!b) { const e = new Error('Booking not found'); e.status = 404; throw e; }
+
+  // chỉ cho hủy khi chưa vào IN_PROGRESS/DONE
+  if (['IN_PROGRESS','DONE','CANCELED'].includes(b.status)) {
+    const e = new Error('Booking cannot be canceled in current state'); e.status = 400; throw e;
+  }
+  // nếu đã trừ kho (trường hợp hiếm), chặn hủy để tránh âm kho
+  if (b.stock_deducted) {
+    const e = new Error('Cannot cancel: inventory already deducted'); e.status = 409; e.code='ALREADY_DEDUCTED'; throw e;
+  }
+
+  b.status = 'CANCELED';
+  if (reason) b.notes_mechanic = `[ADMIN CANCEL] ${reason}`;
+  await b.save();
+
+  return { ok: true, id: b.id, status: b.status };
+}
 
 module.exports = { createBooking, listMyBookings, getMyBooking, cancelMyBooking, checkOverlap, adminApprove,
   adminAssign,
   mechanicDiagnose,
   mechanicStart,
   mechanicComplete,
-  getQuickMinutes, };
+  getQuickMinutes, adminListBookings, adminCancel };

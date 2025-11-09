@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <title><%= title %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style> .inline{display:inline} .w-16{width:16rem} .w-12{width:12rem} </style>
+</head>
+<body>
+<main class="container">
+  <hgroup>
+    <h1>Quản lý đặt lịch</h1>
+    <p>Duyệt / Hủy / Gắn thợ</p>
+  </hgroup>
+
+  <!-- Bộ lọc -->
+  <form method="GET" action="/admin/bookings" class="grid">
+    <label>Trạng thái
+      <select name="status">
+        <option value="">-- Tất cả --</option>
+        <% ['PENDING','APPROVED','IN_DIAGNOSIS','IN_PROGRESS','DONE','CANCELED'].forEach(st => { %>
+          <option value="<%= st %>" <%= (filters.status===st?'selected':'') %>><%= st %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Từ ngày
+      <input type="date" name="dateFrom" value="<%= filters.dateFrom %>">
+    </label>
+    <label>Đến ngày
+      <input type="date" name="dateTo" value="<%= filters.dateTo %>">
+    </label>
+    <label>Thợ
+      <select name="mechanicId">
+        <option value="">-- Tất cả --</option>
+        <% mechanics.forEach(m => { %>
+          <option value="<%= m.id %>" <%= (String(filters.mechanicId)===String(m.id)?'selected':'') %>><%= m.Acc.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <div><button type="submit">Lọc</button> <a href="/admin/bookings" role="button" class="secondary">Xóa lọc</a></div>
+  </form>
+
+  <!-- Bảng -->
+  <article>
+    <table role="grid">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Thời gian</th>
+          <th>Khách</th>
+          <th>Xe</th>
+          <th>Thợ</th>
+          <th>Dịch vụ</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+      <% if (!data.items.length) { %>
+        <tr><td colspan="8" style="text-align:center;color:#777">Không có dữ liệu</td></tr>
+      <% } %>
+      <% data.items.forEach(b => { %>
+        <tr>
+          <td><%= b.id %></td>
+          <td>
+            <div><small>Bắt đầu:</small> <%= new Date(b.start_dt).toLocaleString() %></div>
+            <div><small>Kết thúc:</small> <%= b.end_dt ? new Date(b.end_dt).toLocaleString() : '-' %></div>
+          </td>
+          <td class="p-2">
+  <% if (b.User && b.User.Acc) { %>
+    <%= b.User.Acc.name %>
+    <%= b.User.Acc.phone ? (' (' + b.User.Acc.phone + ')') : '' %>
+  <% } else { %>-<% } %>
+</td>
+          <td class="p-2">
+  <% if (b.Vehicle) { %>
+    <%= b.Vehicle.plate_no %> - <%= b.Vehicle.model || '' %>
+  <% } else { %>-<% } %>
+</td>
+          <td class="p-2">
+  <%= (b.Employee && b.Employee.Acc) ? b.Employee.Acc.name : 'Thợ bất kỳ' %>
+</td>
+          <td>
+            <ul style="margin:0;padding-left:1rem">
+              <% (b.BookingServices||[]).forEach(bs => { %>
+                <li><%= bs.Service.name %> (<%= bs.Service.type %>)</li>
+              <% }) %>
+            </ul>
+          </td>
+          <td><strong><%= b.status %></strong></td>
+          <td>
+            <!-- DUYỆT -->
+            <% if (b.status === 'PENDING') { %>
+              <form class="inline" method="POST" action="/admin/bookings/<%= b.id %>/approve">
+                <button>✔ Duyệt</button>
+              </form>
+            <% } %>
+
+            <!-- HỦY (khi chưa vào IN_PROGRESS/DONE) -->
+            <% if (!['IN_PROGRESS','DONE','CANCELED'].includes(b.status)) { %>
+              <form class="inline" method="POST" action="/admin/bookings/<%= b.id %>/cancel" onsubmit="return confirm('Hủy booking #<%= b.id %>?')">
+                <input type="hidden" name="reason" value="Admin cancel from web">
+                <button class="secondary">✖ Hủy</button>
+              </form>
+            <% } %>
+
+            <!-- GẮN THỢ (khi chưa có mechanic_id) -->
+            <% if (!b.mechanic_id && !['CANCELED','DONE'].includes(b.status)) { %>
+              <form class="inline" method="POST" action="/admin/bookings/<%= b.id %>/assign">
+                <select name="mechanicId" required>
+                  <option value="">-- chọn thợ --</option>
+                  <% mechanics.forEach(m => { %>
+                     <option value="<%= m.id %>" <%= (String(filters.mechanicId)===String(m.id)?'selected':'') %>>
+      <%= m.Acc ? m.Acc.name : ('Thợ #' + m.id) %>
+    </option>
+                  <% }) %>
+                </select>
+                <button>Gắn</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </article>
+
+  <!-- phân trang đơn giản -->
+  <nav>
+    <ul>
+      <% for (let p=1; p<=data.pages; p++) { %>
+        <li class="<%= (p===data.page?'current':'') %>" style="display:inline;margin-right:.5rem">
+          <a href="/admin/bookings?<%= new URLSearchParams({...filters, page:p, size:data.size}).toString() %>"><%= p %></a>
+        </li>
+      <% } %>
+    </ul>
+  </nav>
+</main>
+</body>
+</html>
