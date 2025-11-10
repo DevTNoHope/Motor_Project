@@ -3,9 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/auth_controller.dart';
 import '../../models/role.dart';
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class MechanicHomeScreen extends StatelessWidget {
+  const MechanicHomeScreen({super.key});
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -14,10 +13,6 @@ class HomeScreen extends StatelessWidget {
     }
     if (!auth.logged) {
       Future.microtask(() => context.go('/login'));
-      return const SizedBox();
-    }
-    if (auth.role == AppRole.mechanic) {
-      Future.microtask(() => context.go('/mechanic'));
       return const SizedBox();
     }
     return Scaffold(
@@ -33,21 +28,7 @@ class HomeScreen extends StatelessWidget {
           )
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ListTile(
-            leading: const Icon(Icons.motorcycle),
-            title: const Text('Xe của tôi'),
-            onTap: () => context.push('/vehicles'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.miscellaneous_services),
-            title: const Text('Đặt lịch dịch vụ'),
-            onTap: () => context.push('/booking'),
-          ),
-        ],
-      ),
+      body: Center(child: Text('Trang thợ sửa (WIP)')),
     );
   }
 }
