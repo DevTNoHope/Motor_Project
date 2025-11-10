@@ -1,4 +1,4 @@
-name: fe
+name: app_motor
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -41,6 +41,8 @@ dependencies:
   shared_preferences: ^2.5.3
   cached_network_image: ^3.4.1
   image_picker: ^1.2.0
+  intl: ^0.20.2
+  provider: ^6.1.5+1
 
 dev_dependencies:
   flutter_test:
