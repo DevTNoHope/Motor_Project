@@ -1,6 +1,7 @@
 const { Acc, Role, User, Emp } = require('../models');
+const { Op } = require('sequelize');
 
-const ACC_FIELDS = ['name','gender','birth_year','avatar_url']; // chỉ cho update các field này
+const ACC_FIELDS = ['name','gender','birth_year','avatar_url', 'email', 'phone']; // chỉ cho update các field này
 
 async function getProfile(accId) {
   const acc = await Acc.findOne({
@@ -33,6 +34,22 @@ async function updateProfile(accId, payload) {
   const accPatch = {};
   ACC_FIELDS.forEach(k => { if (payload[k] !== undefined) accPatch[k] = payload[k]; });
 
+   if (payload.email) {
+    const exists = await Acc.count({ where: { email: payload.email, id: { [Op.ne]: accId } } });
+    if (exists) {
+      const err = new Error('Email already in use');
+      err.status = 409; err.code = 'EMAIL_TAKEN';
+      throw err;
+    }
+  }
+  if (payload.phone) {
+    const exists = await Acc.count({ where: { phone: payload.phone, id: { [Op.ne]: accId } } });
+    if (exists) {
+      const err = new Error('Phone already in use');
+      err.status = 409; err.code = 'PHONE_TAKEN';
+      throw err;
+    }
+  }
   // cập nhật Accs
   if (Object.keys(accPatch).length) {
     await Acc.update(accPatch, { where: { id: accId } });
@@ -55,10 +72,6 @@ async function updateProfile(accId, payload) {
 
     if (Object.keys(userPatch).length) {
       const [count] = await User.update(userPatch, { where: { acc_id: accId } });
-      if (!count) {
-        // nếu vì lý do nào đó chưa có profile, tạo mới
-        await User.create({ acc_id: accId, ...userPatch });
-      }
     }
   } else if (roleCode === 'MECHANIC') {
     // cho phép thợ cập nhật skill_tags, hired_at (optional)
@@ -68,9 +81,6 @@ async function updateProfile(accId, payload) {
 
     if (Object.keys(empPatch).length) {
       const [count] = await Emp.update(empPatch, { where: { acc_id: accId } });
-      if (!count) {
-        await Emp.create({ acc_id: accId, ...empPatch });
-      }
     }
   }
 

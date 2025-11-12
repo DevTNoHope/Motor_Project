@@ -11,6 +11,7 @@ const methodOverride = require('method-override');
 const apiRoutes = require('./routes/api');
 const webRoutes = require('./routes/web');
 const errorHandler = require('./middlewares/error');
+const apiUpload = require('./routes/api/upload.api');
 
 const app = express();
 
@@ -35,11 +36,12 @@ app.set('view engine', 'ejs');
 app.use(expressLayouts);                     
 app.set('layout', 'layouts/admin');
 app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Routes
 app.use('/api/v1', apiRoutes);
 app.use('/', webRoutes);
-
+app.use('/api/v1/upload', apiUpload);
 // Error handler
 app.use(errorHandler);
 

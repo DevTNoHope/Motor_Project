@@ -333,3 +333,37 @@ COMMIT;
 -- -------------
 -- DONE
 -- -------------
+-- Lưu phụ tùng thực sự sử dụng trong một booking (snapshot giá)
+CREATE TABLE IF NOT EXISTS Booking_Parts (
+  id            BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  booking_id    BIGINT UNSIGNED NOT NULL,
+  part_id       BIGINT UNSIGNED NOT NULL,
+  qty           INT NOT NULL,
+  price_snapshot DECIMAL(10,2) NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_bp_booking FOREIGN KEY (booking_id) REFERENCES Bookings(id)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT fk_bp_part FOREIGN KEY (part_id) REFERENCES Parts(id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+CREATE INDEX idx_bp_booking ON Booking_Parts(booking_id);
+
+-- Mối quan hệ dịch vụ QUICK cần phụ tùng gì và bao nhiêu
+CREATE TABLE IF NOT EXISTS Service_Parts (
+  id            BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  service_id    BIGINT UNSIGNED NOT NULL,
+  part_id       BIGINT UNSIGNED NOT NULL,
+  qty_per_service INT NOT NULL,
+  CONSTRAINT fk_sp_service FOREIGN KEY (service_id) REFERENCES Services(id)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT fk_sp_part FOREIGN KEY (part_id) REFERENCES Parts(id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  UNIQUE KEY uq_sp (service_id, part_id)
+);
+
+ALTER TABLE Bookings
+  ADD COLUMN total_service_amount DECIMAL(10,2) NULL,
+  ADD COLUMN total_parts_amount   DECIMAL(10,2) NULL,
+  ADD COLUMN total_amount         DECIMAL(10,2) NULL;
+ADD COLUMN stock_deducted TINYINT(1) NOT NULL DEFAULT 0;
+

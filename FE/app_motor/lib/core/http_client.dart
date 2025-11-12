@@ -11,10 +11,10 @@ class HttpClient {
   ));
 
   static final _storage = const FlutterSecureStorage();
-
+  static bool _authInstalled = false;
   static Dio i() {
     // attach interceptors once
-    if (_dio.interceptors.isEmpty) {
+    if (!_authInstalled) {
       _dio.interceptors.add(InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _storage.read(key: 'accessToken');
@@ -31,6 +31,7 @@ class HttpClient {
           handler.next(e);
         },
       ));
+      _authInstalled = true;
     }
     return _dio;
   }
