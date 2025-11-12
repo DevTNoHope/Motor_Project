@@ -1,3 +1,4 @@
+import 'package:app_motor/views/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../views/auth/login_screen.dart';
@@ -13,5 +14,6 @@ final appRouter = GoRouter(
     GoRoute(path: '/vehicles', builder: (_, __) => const VehicleListScreen()),
     GoRoute(path: '/booking', builder: (_, __) => const BookingFlowScreen()),
     GoRoute(path: '/mechanic', builder: (_, __) => const MechanicHomeScreen()),
+    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen())
   ],
 );
