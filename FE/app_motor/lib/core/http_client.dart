@@ -12,9 +12,11 @@ class HttpClient {
 
   static final _storage = const FlutterSecureStorage();
 
+  static bool _initialized = false;
+
   static Dio i() {
-    // attach interceptors once
-    if (_dio.interceptors.isEmpty) {
+    if (!_initialized) {
+      _initialized = true; // đảm bảo chỉ chạy một lần
       _dio.interceptors.add(InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _storage.read(key: 'accessToken');
@@ -25,7 +27,7 @@ class HttpClient {
         },
         onError: (e, handler) async {
           if (e.response?.statusCode == 401) {
-            // token hết hạn -> xoá token & báo cho UI (ở đây đơn giản là throw)
+            // token hết hạn -> xoá token & thông báo cho UI
             await _storage.delete(key: 'accessToken');
           }
           handler.next(e);
@@ -34,4 +36,5 @@ class HttpClient {
     }
     return _dio;
   }
+
 }

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../../services/mechanic_booking_service.dart';
 
 class MechanicDiagnosisPage extends StatefulWidget {
-  const MechanicDiagnosisPage({super.key});
+  final Map? booking;
+  const MechanicDiagnosisPage({super.key, this.booking});
 
   @override
   State<MechanicDiagnosisPage> createState() => _MechanicDiagnosisPageState();
 }
+
 
 class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
   final _formKey = GlobalKey<FormState>();
@@ -44,7 +46,7 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
 
   @override
   Widget build(BuildContext context) {
-    final booking = ModalRoute.of(context)!.settings.arguments as Map;
+    final booking = widget.booking ?? {};
     final vehicle = booking['vehicle'] ?? {};
 
     return Scaffold(
