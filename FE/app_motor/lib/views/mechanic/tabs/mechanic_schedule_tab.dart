@@ -143,145 +143,131 @@ class _MechanicScheduleTabState extends State<MechanicScheduleTab> {
                 : _bookings.isEmpty
                 ? const Center(child: Text('Không có lịch nào cho ngày này.'))
                 : RefreshIndicator(
-                    onRefresh: _fetchBookings,
-                    child: ListView.builder(
-                      itemCount: _bookings.length,
-                      itemBuilder: (context, i) {
-                        final b = _bookings[i];
-                        final start = DateTime.parse(b['start_dt']);
-                        final end = DateTime.parse(b['end_dt']);
-                        final services = (b['service_types'] as List?) ?? [];
+              onRefresh: _fetchBookings,
+              child: ListView.builder(
+                itemCount: _bookings.length,
+                itemBuilder: (context, i) {
+                  final b = _bookings[i];
+                  final start = DateTime.parse(b['start_dt']);
+                  final end = DateTime.parse(b['end_dt']);
+                  final services = (b['service_types'] as List?) ?? [];
 
-                        final isQuick = services.contains('QUICK');
-                        final isRepair = services.contains('REPAIR');
-                        final status = b['status'];
+                  final hasRepair = services.contains('REPAIR');
+                  final status = b['status'];
 
-                        return Card(
-                          margin: const EdgeInsets.all(8),
-                          child: ExpansionTile(
-                            leading: const Icon(Icons.schedule),
-                            title: Text(
-                              '${formatTime(start)} - ${formatTime(end)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                  return Card(
+                    margin: const EdgeInsets.all(8),
+                    child: ExpansionTile(
+                      leading: const Icon(Icons.schedule),
+                      title: Text(
+                        '${formatTime(start)} - ${formatTime(end)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _statusText(status),
+                            style: TextStyle(
+                              color: _statusColor(status),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text('Khách: ${b['user']?['name'] ?? '---'}'),
+                          Text(
+                            'Xe: ${b['vehicle']?['brand'] ?? ''} ${b['vehicle']?['model'] ?? ''} (${b['vehicle']?['plate_no'] ?? ''})',
+                          ),
+                        ],
+                      ),
+
+                      // 🔧 Đây là phần đã được cập nhật logic
+                      children: [
+                        if (hasRepair) ...[
+                          // ✅ Nếu có REPAIR (kể cả có QUICK)
+                          if (status == 'APPROVED') ...[
+                            Center(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  context.push(
+                                    '/mechanic/diagnosis',
+                                    extra: b,
+                                  ).then((result) {
+                                    if (result == true) _fetchBookings();
+                                  });
+                                },
+                                icon: const Icon(Icons.assignment),
+                                label: const Text('Tạo phiếu đánh giá xe'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber,
+                                  foregroundColor: Colors.black,
+                                ),
                               ),
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Text(
+                                '⚠️ Vui lòng tạo phiếu đánh giá trước khi bắt đầu sửa chữa',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 12),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ] else if (status == 'IN_DIAGNOSIS' ||
+                              status == 'IN_PROGRESS' ||
+                              status == 'DONE') ...[
+                            Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceEvenly,
                               children: [
-                                Text(
-                                  _statusText(status),
-                                  style: TextStyle(
-                                    color: _statusColor(status),
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                ElevatedButton.icon(
+                                  onPressed: status == 'IN_DIAGNOSIS'
+                                      ? () => _handleStart(b['id'])
+                                      : null,
+                                  icon: const Icon(Icons.play_arrow),
+                                  label: const Text('Bắt đầu'),
                                 ),
-                                Text('Khách: ${b['user']?['name'] ?? '---'}'),
-                                Text(
-                                  'Xe: ${b['vehicle']?['brand'] ?? ''} ${b['vehicle']?['model'] ?? ''} (${b['vehicle']?['plate_no'] ?? ''})',
+                                ElevatedButton.icon(
+                                  onPressed: status == 'IN_PROGRESS'
+                                      ? () => _handleComplete(b['id'])
+                                      : null,
+                                  icon: const Icon(Icons.done),
+                                  label: const Text('Hoàn thành'),
                                 ),
                               ],
                             ),
+                          ],
+                        ] else ...[
+                          // ✅ Chỉ có QUICK -> làm bình thường
+                          Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceEvenly,
                             children: [
-                              if (isQuick) ...[
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: status == 'APPROVED'
-                                          ? () => _handleStart(b['id'])
-                                          : null,
-                                      icon: const Icon(Icons.play_arrow),
-                                      label: const Text('Bắt đầu'),
-                                    ),
-                                    ElevatedButton.icon(
-                                      onPressed: status == 'IN_PROGRESS'
-                                          ? () => _handleComplete(b['id'])
-                                          : null,
-                                      icon: const Icon(Icons.done),
-                                      label: const Text('Hoàn thành'),
-                                    ),
-                                  ],
-                                ),
-                              ] else if (isRepair) ...[
-                                if (status == 'APPROVED') ...[
-                                  // ✅ Chưa chẩn đoán => phải tạo phiếu trước
-                                  Center(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        context
-                                            .push(
-                                              '/mechanic/diagnosis',
-                                              extra: b,
-                                            )
-                                            .then((result) {
-                                              // Khi gửi phiếu xong (Navigator.pop(context, true))
-                                              if (result == true)
-                                                _fetchBookings();
-                                            });
-                                      },
-                                      icon: const Icon(Icons.assignment),
-                                      label: const Text(
-                                        'Tạo phiếu đánh giá xe',
-                                      ),
-                                    ),
-                                  ),
-                                ] else if (status == 'IN_DIAGNOSIS' ||
-                                    status == 'IN_PROGRESS' ||
-                                    status == 'DONE') ...[
-                                  // ✅ Sau khi có phiếu chẩn đoán, hiển thị 2 nút Start / Complete
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      ElevatedButton.icon(
-                                        onPressed: status == 'IN_DIAGNOSIS'
-                                            ? () => _handleStart(b['id'])
-                                            : null,
-                                        icon: const Icon(Icons.play_arrow),
-                                        label: const Text('Bắt đầu'),
-                                      ),
-                                      ElevatedButton.icon(
-                                        onPressed: status == 'IN_PROGRESS'
-                                            ? () => _handleComplete(b['id'])
-                                            : null,
-                                        icon: const Icon(Icons.done),
-                                        label: const Text('Hoàn thành'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ] else if (isQuick) ...[
-                                // 🔹 Chỉ toàn QUICK -> hiển thị bắt đầu / hoàn thành
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: status == 'APPROVED'
-                                          ? () => _handleStart(b['id'])
-                                          : null,
-                                      icon: const Icon(Icons.play_arrow),
-                                      label: const Text('Bắt đầu'),
-                                    ),
-                                    ElevatedButton.icon(
-                                      onPressed: status == 'IN_PROGRESS'
-                                          ? () => _handleComplete(b['id'])
-                                          : null,
-                                      icon: const Icon(Icons.done),
-                                      label: const Text('Hoàn thành'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: status == 'APPROVED'
+                                    ? () => _handleStart(b['id'])
+                                    : null,
+                                icon: const Icon(Icons.play_arrow),
+                                label: const Text('Bắt đầu'),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: status == 'IN_PROGRESS'
+                                    ? () => _handleComplete(b['id'])
+                                    : null,
+                                icon: const Icon(Icons.done),
+                                label: const Text('Hoàn thành'),
+                              ),
                             ],
                           ),
-                        );
-                      },
+                        ],
+                        const SizedBox(height: 12),
+                      ],
                     ),
-                  ),
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),
