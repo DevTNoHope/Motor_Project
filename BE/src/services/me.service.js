@@ -68,9 +68,9 @@ async function updateProfile(accId, payload) {
 
     if (Object.keys(empPatch).length) {
       const [count] = await Emp.update(empPatch, { where: { acc_id: accId } });
-      if (!count) {
-        await Emp.create({ acc_id: accId, ...empPatch });
-      }
+      // if (!count) {
+      //   await Emp.create({ acc_id: accId, ...empPatch });
+      // }
     }
   }
 
