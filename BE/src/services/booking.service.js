@@ -101,7 +101,7 @@ async function createBooking(accId, payload) {
   const services = await loadServices(serviceIds);
   const { initialMin, hasRepair } = calcInitialDuration(services);
 
-  const startDt = dayjs.utc(start);
+  const startDt = dayjs(start);
   const endDt   = startDt.add(initialMin, 'minute');
 
   // chống trùng nếu đã chỉ định thợ
@@ -212,9 +212,9 @@ async function adminAssign(bookingId, mechanicId) {
 
   // thời lượng hiện tại: nếu đã có end_dt -> dùng; nếu null, dùng placeholder
   const { quickMin, hasRepair } = await getQuickMinutes(b.id);
-  const start = dayjs.utc(b.start_dt);
+  const start = dayjs(b.start_dt);
   const end = b.end_dt
-    ? dayjs.utc(b.end_dt)
+    ? dayjs(b.end_dt)
     : start.add(quickMin + (hasRepair ? DIAGNOSIS_PLACEHOLDER_MIN : 0), 'minute');
 
   // chống trùng
@@ -240,7 +240,7 @@ async function mechanicDiagnose(bookingId, mechanicAccId, { diagnosisNote, etaMi
   }
 
   const { quickMin } = await getQuickMinutes(b.id);
-  const start = dayjs.utc(b.start_dt);
+  const start = dayjs(b.start_dt);
   const end = start.add(quickMin + (laborEstMin || 0), 'minute');
 
   // check overlap với thời lượng thực
@@ -364,9 +364,9 @@ async function mechanicStart(bookingId, mechanicAccId) {
 
     // chống trùng một lần nữa tại thời điểm start
     const { quickMin, hasRepair } = await getQuickMinutes(b.id);
-    const start = dayjs.utc(b.start_dt);
+    const start = dayjs(b.start_dt);
     const end = b.end_dt
-      ? dayjs.utc(b.end_dt)
+      ? dayjs(b.end_dt)
       : start.add(quickMin + (hasRepair ? DIAGNOSIS_PLACEHOLDER_MIN : 0), 'minute');
 
     await checkOverlap(b.mechanic_id, start.toISOString(), end.toISOString(), b.id);
@@ -491,10 +491,59 @@ async function adminCancel(bookingId, reason) {
 
   return { ok: true, id: b.id, status: b.status };
 }
+/** MECHANIC: lấy tất cả lịch làm việc theo ngày (của thợ đăng nhập) */
+async function mechanicListByDate(mechanicAccId, dateStr) {
+  const emp = await Emp.findOne({ where: { acc_id: mechanicAccId } });
+  if (!emp) {
+    const e = new Error('Mechanic profile not found');
+    e.status = 404; throw e;
+  }
+
+  const date = dateStr ? dayjs(dateStr) : dayjs();
+  const startOfDay = date.startOf('day').toDate();
+  const endOfDay = date.endOf('day').toDate();
+
+  const rows = await Booking.findAll({
+    where: {
+      mechanic_id: emp.id,
+      start_dt: { [Op.between]: [startOfDay, endOfDay] }
+    },
+    include: [
+      {
+        model: User,
+        include: [{ model: Acc, attributes: ['name', 'phone'] }]
+      },
+      {
+        model: Vehicle,
+        attributes: ['id', 'plate_no', 'brand', 'model']
+      },
+      {
+        model: BookingService,
+        include: [{ model: Service, attributes: ['id', 'name', 'type'] }]
+      }
+    ],
+    order: [['start_dt', 'ASC']]
+  });
+
+  return rows.map(b => ({
+    id: b.id,
+    start_dt: b.start_dt,
+    end_dt: b.end_dt,
+    status: b.status,
+    user: b.User ? { name: b.User.Acc.name, phone: b.User.Acc.phone } : null,
+    vehicle: b.Vehicle ? {
+      plate_no: b.Vehicle.plate_no,
+      model: b.Vehicle.model,
+      brand: b.Vehicle.brand
+    } : null,
+    service_types: b.BookingServices.map(bs => bs.Service?.type) // 👈 thêm dòng này
+  }));
+}
+
 
 module.exports = { createBooking, listMyBookings, getMyBooking, cancelMyBooking, checkOverlap, adminApprove,
   adminAssign,
   mechanicDiagnose,
   mechanicStart,
   mechanicComplete,
-  getQuickMinutes, adminListBookings, adminCancel };
+  getQuickMinutes, adminListBookings, adminCancel, mechanicListByDate  };
