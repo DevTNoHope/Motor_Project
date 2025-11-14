@@ -2,7 +2,7 @@ class Vehicle {
   final int id;
   final String plateNo;
   final String? brand;
-  final String? model;
+  final String model;
   final int? year;
   final String? color;
 
@@ -10,7 +10,7 @@ class Vehicle {
     required this.id,
     required this.plateNo,
     this.brand,
-    this.model,
+    required this.model,
     this.year,
     this.color,
   });
@@ -23,4 +23,20 @@ class Vehicle {
     year: j['year'],
     color: j['color'],
   );
+
+  Map<String, dynamic> toCreatePayload() => {
+    'plate_no': plateNo,                      // <-- dùng 'plate_no'
+    if (brand != null) 'brand': brand,
+    if (model != null) 'model': model,
+    if (year != null) 'year': year,
+    if (color != null) 'color': color,
+  };
+
+  Map<String, dynamic> toUpdatePayload() => {
+    if (plateNo.isNotEmpty) 'plate_no': plateNo,
+    if (brand != null) 'brand': brand,
+    if (model != null) 'model': model,
+    if (year != null) 'year': year,
+    if (color != null) 'color': color,
+  };
 }

@@ -49,7 +49,8 @@ class HomeScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.miscellaneous_services),
             title: const Text('Đặt lịch dịch vụ'),
-            onTap: () => context.push('/booking'),
+            onTap: () => context.push('/booking')
+            ,
           ),
         ],
       ),
