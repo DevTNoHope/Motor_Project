@@ -9,6 +9,7 @@ import '../views/booking/booking_flow_screen.dart';
 
 import '../views/home/home_screen.dart';
 import '../views/mechanic/mechanic_home_screen.dart';
+import '../views/mechanic/tabs/mechanic_diagnosis_page.dart';
 import '../views/vehicle/vehicle_list_screen.dart';
 
 final appRouter = GoRouter(
@@ -25,6 +26,14 @@ final appRouter = GoRouter(
         redirectWhenDenied: '/mechanic',
         child: const BookingFlowScreen(),
       ),
+    ),
+  //  GoRoute(path: '/mechanic/diagnosis', builder: (_, __) => const MechanicDiagnosisPage()),
+    GoRoute(
+      path: '/mechanic/diagnosis',
+      builder: (_, state) {
+        final booking = state.extra as Map?;
+        return MechanicDiagnosisPage(booking: booking);
+      },
     ),
   ],
 );

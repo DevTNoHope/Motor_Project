@@ -52,5 +52,14 @@ async function complete(req, res, next) {
     });
   } catch (e) { next(e); }
 }
-
-module.exports = { diagnose, start, complete };
+/** ✅ Lấy danh sách lịch làm việc của thợ đăng nhập theo ngày */
+async function listByDate(req, res, next) {
+  try {
+    const { date } = req.query; // yyyy-MM-dd
+    const data = await svc.mechanicListByDate(req.user.accId, date);
+    res.json(data);
+  } catch (e) {
+    next(e);
+  }
+}
+module.exports = { diagnose, start, complete, listByDate };

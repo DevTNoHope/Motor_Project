@@ -25,7 +25,7 @@ class HttpClient {
         },
         onError: (e, handler) async {
           if (e.response?.statusCode == 401) {
-            // token hết hạn -> xoá token & báo cho UI (ở đây đơn giản là throw)
+            // token hết hạn -> xoá token & thông báo cho UI
             await _storage.delete(key: 'accessToken');
           }
           handler.next(e);
@@ -35,4 +35,5 @@ class HttpClient {
     }
     return _dio;
   }
+
 }

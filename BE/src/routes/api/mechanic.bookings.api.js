@@ -18,4 +18,6 @@ router.patch('/:id/diagnose',
 router.patch('/:id/start',   param('id').isInt().toInt(), ctrl.start);
 router.patch('/:id/complete',param('id').isInt().toInt(), ctrl.complete);
 
+router.get('/', ctrl.listByDate);
+
 module.exports = router;
