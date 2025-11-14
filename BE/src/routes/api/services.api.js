@@ -2,8 +2,8 @@ const router = require('express').Router();
 const { verifyJWT, requireRole } = require('../../middlewares/auth');
 const ctrl = require('../../controllers/service.controller');
 
-// chỉ ADMIN được CRUD dịch vụ
-router.use(verifyJWT, requireRole('ADMIN'));
+
+router.use(verifyJWT);
 
 router.get('/', ctrl.getAll);
 router.get('/:id', ctrl.getById);

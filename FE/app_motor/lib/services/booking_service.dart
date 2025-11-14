@@ -6,17 +6,19 @@ class BookingService {
   Future<Map<String, dynamic>> createBooking({
     required int vehicleId,
     required List<int> serviceIds,
-    required DateTime start,
-    int? mechanicId,
-    String? notes,
+    int? mechanicId,      // null = thợ bất kỳ
+    required DateTime startUtc,
+    String? notesUser,
   }) async {
-    final res = await _dio.post('/bookings', data: {
+    final body = <String, dynamic>{
       'vehicleId': vehicleId,
       'serviceIds': serviceIds,
-      'start': start.toUtc().toIso8601String(),
-      'mechanicId': mechanicId,      // null = thợ bất kỳ
-      'notesUser': notes,            // BE sẽ ghi vào notes_user
-    });
+      'start': startUtc.toIso8601String(),
+      'notesUser': notesUser,
+    };
+    if (mechanicId != null) body['mechanicId'] = mechanicId;
+
+    final res = await _dio.post('/bookings', data: body);
     return res.data as Map<String, dynamic>;
   }
 }
