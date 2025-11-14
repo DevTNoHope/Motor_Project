@@ -1,3 +1,4 @@
+import 'package:app_motor/views/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../views/auth/login_screen.dart';
@@ -22,5 +23,6 @@ final appRouter = GoRouter(
         return MechanicDiagnosisPage(booking: booking);
       },
     ),
+    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen())
   ],
 );

@@ -18,6 +18,8 @@ router.get('/', getMe);
  */
 router.patch('/',
   // validators nhẹ cho dữ liệu thường gặp; cái nào không gửi thì bỏ qua
+  body('email').optional().isEmail().withMessage('Invalid email'),
+  body('phone').optional().isString().isLength({ min: 8 }),
   body('name').optional().isString().isLength({ min: 2 }),
   body('gender').optional().isIn(['M','F','O']),
   body('birth_year').optional().isInt({ min: 1900, max: 2100 }),

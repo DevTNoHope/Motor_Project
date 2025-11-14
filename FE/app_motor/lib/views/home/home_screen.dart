@@ -37,6 +37,11 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Hồ sơ cá nhân'),
+            onTap: () => context.push('/profile'),
+          ),
+          ListTile(
             leading: const Icon(Icons.motorcycle),
             title: const Text('Xe của tôi'),
             onTap: () => context.push('/vehicles'),

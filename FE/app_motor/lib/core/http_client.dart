@@ -11,12 +11,10 @@ class HttpClient {
   ));
 
   static final _storage = const FlutterSecureStorage();
-
-  static bool _initialized = false;
-
+  static bool _authInstalled = false;
   static Dio i() {
-    if (!_initialized) {
-      _initialized = true; // đảm bảo chỉ chạy một lần
+    // attach interceptors once
+    if (!_authInstalled) {
       _dio.interceptors.add(InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _storage.read(key: 'accessToken');
@@ -33,6 +31,7 @@ class HttpClient {
           handler.next(e);
         },
       ));
+      _authInstalled = true;
     }
     return _dio;
   }
