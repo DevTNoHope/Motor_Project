@@ -3,10 +3,14 @@ import 'package:app_motor/views/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../models/booking.dart';
 import '../models/role.dart';
 import '../views/auth/login_screen.dart';
+import '../views/booking/booking_detail_screen.dart';
+import '../views/booking/booking_diagnosis_screen.dart';
 import '../views/booking/booking_flow_screen.dart';
 
+import '../views/booking/booking_history_screen.dart';
 import '../views/home/home_screen.dart';
 import '../views/mechanic/mechanic_home_screen.dart';
 import '../views/mechanic/tabs/mechanic_diagnosis_page.dart';
@@ -26,6 +30,24 @@ final appRouter = GoRouter(
         redirectWhenDenied: '/mechanic',
         child: const BookingFlowScreen(),
       ),
+    ),
+    GoRoute(
+      path: '/booking-history',
+      builder: (_, __) => const BookingHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/booking-history/:id',
+      builder: (context, state) {
+        final id = int.parse(state.pathParameters['id']!);
+        return BookingDetailScreen(bookingId: id);
+      },
+    ),
+    GoRoute(
+      path: '/booking-diagnosis',
+      builder: (context, state) {
+        final booking = state.extra as Booking;
+        return BookingDiagnosisScreen(booking: booking);
+      },
     ),
   //  GoRoute(path: '/mechanic/diagnosis', builder: (_, __) => const MechanicDiagnosisPage()),
     GoRoute(
