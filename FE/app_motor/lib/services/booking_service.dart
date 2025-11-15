@@ -1,5 +1,5 @@
 import '../core/http_client.dart';
-
+import '../models/booking.dart';
 class BookingService {
   final _dio = HttpClient.i();
 
@@ -20,5 +20,20 @@ class BookingService {
 
     final res = await _dio.post('/bookings', data: body);
     return res.data as Map<String, dynamic>;
+  }
+  /// Lấy danh sách lịch hẹn của chính user
+  Future<List<Booking>> getMyBookings() async {
+    final res = await _dio.get('/bookings/me');
+    final data = res.data as List;
+    return data.map((e) => Booking.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Lấy chi tiết một booking theo id (nếu sau này cần)
+  Future<Booking> getBookingDetail(int id) async {
+    final res = await _dio.get('/bookings/$id');
+    return Booking.fromJson(res.data as Map<String, dynamic>);
+  }
+  Future<void> cancelBooking(int id) async {
+    await _dio.patch('/bookings/$id/cancel');
   }
 }

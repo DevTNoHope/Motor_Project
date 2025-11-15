@@ -1,79 +1,139 @@
-class BookingItemService {
+import 'service_item.dart'; // đã có từ trước (model Service)
+import 'part_model.dart';
+
+class BookingServiceItem {
   final int id;
+  final int bookingId;
   final int serviceId;
   final int qty;
-  final num? priceSnapshot;
+  final String? priceSnapshot;
   final int? durationSnapshotMin;
-  final String? name; // từ include Service
+  final ServiceItem? service; // Service trong BookingServices.Service
 
-  BookingItemService({
+  BookingServiceItem({
     required this.id,
+    required this.bookingId,
     required this.serviceId,
     required this.qty,
     this.priceSnapshot,
     this.durationSnapshotMin,
-    this.name,
+    this.service,
   });
 
-  factory BookingItemService.fromJson(Map<String, dynamic> j) => BookingItemService(
-    id: j['id'],
-    serviceId: j['service_id'],
-    qty: j['qty'] ?? 1,
-    priceSnapshot: j['price_snapshot'],
-    durationSnapshotMin: j['duration_snapshot_min'],
-    name: (j['Service'] is Map) ? j['Service']['name'] as String? : null,
-  );
+  factory BookingServiceItem.fromJson(Map<String, dynamic> json) {
+    return BookingServiceItem(
+      id: json['id'] as int,
+      bookingId: json['booking_id'] as int,
+      serviceId: json['service_id'] as int,
+      qty: json['qty'] as int,
+      priceSnapshot: json['price_snapshot'] as String?,
+      durationSnapshotMin: json['duration_snapshot_min'] as int?,
+      service: json['Service'] != null
+          ? ServiceItem.fromJson(json['Service'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+class BookingPartModel {
+  final int id;
+  final int partId;
+  final int qty;
+  final double priceSnapshot;
+  final PartModel? part; // name, unit, price gốc
+
+  BookingPartModel({
+    required this.id,
+    required this.partId,
+    required this.qty,
+    required this.priceSnapshot,
+    this.part,
+  });
+
+  factory BookingPartModel.fromJson(Map<String, dynamic> json) {
+    return BookingPartModel(
+      id: json['id'] as int,
+      partId: json['part_id'] as int,
+      qty: json['qty'] as int,
+      priceSnapshot:
+      double.tryParse(json['price_snapshot']?.toString() ?? '0') ?? 0,
+      part: json['Part'] != null
+          ? PartModel.fromJson(json['Part'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  double get lineTotal => priceSnapshot * qty;
 }
 
 class Booking {
   final int id;
-  final String status;               // PENDING|APPROVED|IN_DIAGNOSIS|IN_PROGRESS|DONE|CANCELED
-  final DateTime startDt;
-  final DateTime? endDt;
-  final int? userId;
+  final int userId;
   final int? mechanicId;
-  final int? vehicleId;
+  final int vehicleId;
+  final DateTime startDt;
+  final DateTime endDt;
+  final String status;
   final String? notesUser;
   final String? notesMechanic;
-  final num? totalServiceAmount;
-  final num? totalPartsAmount;
-  final num? totalAmount;
-  final List<BookingItemService> items;
+  final String? totalServiceAmount;
+  final String? totalPartsAmount;
+  final String? totalAmount;
+  final bool stockDeducted;
+  final DateTime createdAt;
+  final List<BookingServiceItem> services;
+  final List<BookingPartModel> parts;
 
   Booking({
     required this.id,
-    required this.status,
+    required this.userId,
+    required this.mechanicId,
+    required this.vehicleId,
     required this.startDt,
-    this.endDt,
-    this.userId,
-    this.mechanicId,
-    this.vehicleId,
-    this.notesUser,
-    this.notesMechanic,
-    this.totalServiceAmount,
-    this.totalPartsAmount,
-    this.totalAmount,
-    this.items = const [],
+    required this.endDt,
+    required this.status,
+    required this.notesUser,
+    required this.notesMechanic,
+    required this.totalServiceAmount,
+    required this.totalPartsAmount,
+    required this.totalAmount,
+    required this.stockDeducted,
+    required this.createdAt,
+    required this.services,
+    this.parts = const [],
   });
 
-  factory Booking.fromJson(Map<String, dynamic> j) => Booking(
-    id: j['id'],
-    status: j['status'],
-    startDt: DateTime.parse(j['start_dt']),
-    endDt: j['end_dt'] != null ? DateTime.parse(j['end_dt']) : null,
-    userId: j['user_id'],
-    mechanicId: j['mechanic_id'],
-    vehicleId: j['vehicle_id'],
-    notesUser: j['notes_user'],
-    notesMechanic: j['notes_mechanic'],
-    totalServiceAmount: j['total_service_amount'],
-    totalPartsAmount: j['total_parts_amount'],
-    totalAmount: j['total_amount'],
-    items: (j['BookingServices'] is List)
-        ? (j['BookingServices'] as List)
-        .cast<Map<String, dynamic>>()
-        .map(BookingItemService.fromJson)
-        .toList()
-        : const [],
-  );
+  factory Booking.fromJson(Map<String, dynamic> json) {
+    final list = (json['BookingServices'] as List? ?? [])
+        .map((e) => BookingServiceItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final partsJson = json['BookingParts'] as List? ?? [];
+
+    return Booking(
+      id: json['id'] as int,
+      userId: json['user_id'] as int,
+      mechanicId: json['mechanic_id'] as int?,
+      vehicleId: json['vehicle_id'] as int,
+      startDt: DateTime.parse(json['start_dt'] as String),
+      endDt: DateTime.parse(json['end_dt'] as String),
+      status: json['status'] as String,
+      notesUser: json['notes_user'] as String?,
+      notesMechanic: json['notes_mechanic'] as String?,
+      totalServiceAmount: json['total_service_amount'] as String?,
+      totalPartsAmount: json['total_parts_amount'] as String?,
+      totalAmount: json['total_amount'] as String?,
+      stockDeducted: json['stock_deducted'] as bool,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      services: list,
+      parts: partsJson
+          .map((e) => BookingPartModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  /// Một số helper cho UI
+  bool get hasRepair =>
+      services.any((s) => s.service?.type == 'REPAIR');
+
+  String get servicesLabel =>
+      services.map((s) => s.service?.name ?? 'Dịch vụ #${s.serviceId}').join(', ');
 }
