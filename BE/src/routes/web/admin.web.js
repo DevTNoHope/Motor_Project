@@ -61,6 +61,16 @@ const {
 
 router.get("/admin", requireAdmin, async (req, res, next) => {
   try {
+    const baseURL = `${req.protocol}://${req.get("host")}/api/v1`;
+    const token = req.cookies?.token;
+
+    // Gọi API stats mới tạo
+    const { data: advancedStats } = await axios.get(
+      `${baseURL}/admin/stats`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // Đồng thời lấy thống kê cơ bản hiện có
     const [
       mechanicCount,
       serviceCount,
@@ -77,7 +87,7 @@ router.get("/admin", requireAdmin, async (req, res, next) => {
       PurchaseOrder.count(),
     ]);
 
-    const stats = {
+    const basicStats = {
       mechanics: mechanicCount,
       services: serviceCount,
       parts: partCount,
@@ -89,7 +99,8 @@ router.get("/admin", requireAdmin, async (req, res, next) => {
     res.render("admin/dashboard", {
       layout: "layouts/admin",
       title: "Bảng điều khiển",
-      stats,
+      stats: basicStats,
+      advanced: advancedStats,
     });
   } catch (err) {
     next(err);

@@ -1,69 +1,131 @@
 <div class="space-y-8">
-  <div class="flex items-center justify-between">
-    <h1 class="text-3xl font-semibold text-slate-800">Bảng điều khiển</h1>
-    <p class="text-slate-500 text-sm">
-      Xin chào, <%= currentUser?.name || 'Admin' %> 👋
-    </p>
-  </div>
+
+  <div class="flex items-center justify-between"></div>
 
   <!-- Quick Stats -->
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
     <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
       <span class="text-slate-500 text-sm">Thợ sửa xe</span>
       <span class="text-2xl font-semibold text-emerald-600"><%= stats.mechanics %></span>
     </div>
+
     <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
       <span class="text-slate-500 text-sm">Dịch vụ</span>
       <span class="text-2xl font-semibold text-indigo-600"><%= stats.services %></span>
     </div>
+
     <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
       <span class="text-slate-500 text-sm">Phụ tùng</span>
       <span class="text-2xl font-semibold text-amber-600"><%= stats.parts %></span>
     </div>
+
     <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
       <span class="text-slate-500 text-sm">Loại phụ tùng</span>
       <span class="text-2xl font-semibold text-purple-600"><%= stats.partTypes %></span>
     </div>
+
     <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
       <span class="text-slate-500 text-sm">Nhà cung cấp</span>
       <span class="text-2xl font-semibold text-pink-600"><%= stats.suppliers %></span>
     </div>
+
     <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
       <span class="text-slate-500 text-sm">Phiếu nhập hàng</span>
       <span class="text-2xl font-semibold text-lime-600"><%= stats.purchaseOrders %></span>
     </div>
+
   </div>
 
-  <!-- Management Links -->
-  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-    <% const links = [
-      { title: 'Quản lý Thợ sửa xe', icon: '🧰', href: '/admin/employees', color: 'bg-emerald-500' },
-      { title: 'Quản lý Dịch vụ', icon: '🛠️', href: '/admin/services', color: 'bg-indigo-500' },
-      { title: 'Quản lý Phụ tùng', icon: '⚙️', href: '/admin/parts', color: 'bg-amber-500' },
-      { title: 'Loại phụ tùng', icon: '📦', href: '/admin/part-types', color: 'bg-purple-500' },
-      { title: 'Nhà cung cấp', icon: '🏢', href: '/admin/suppliers', color: 'bg-pink-500' },
-      { title: 'Phiếu nhập hàng', icon: '🧾', href: '/admin/purchase-orders', color: 'bg-lime-500' }
-    ]; %>
 
-    <% links.forEach(link => { %>
-      <a href="<%= link.href %>" class="group block bg-white rounded-xl shadow hover:shadow-lg transition p-6 border border-slate-100 hover:-translate-y-1">
-        <div class="flex items-center space-x-4">
-          <div class="<%= link.color %> text-white text-3xl w-14 h-14 flex items-center justify-center rounded-xl shadow">
-            <%= link.icon %>
-          </div>
-          <div>
-            <h2 class="text-lg font-semibold text-slate-800 group-hover:text-emerald-600 transition">
-              <%= link.title %>
-            </h2>
-            <p class="text-slate-500 text-sm mt-1">Nhấn để mở trang quản lý</p>
-          </div>
-        </div>
-      </a>
-    <% }) %>
+  <!-- ===================== THỐNG KÊ NÂNG CAO ===================== -->
+  <h2 class="text-xl font-semibold mt-10">Thống kê hoạt động</h2>
+
+  <!-- Advanced Stats -->
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Tổng số đơn</span>
+      <span class="text-2xl font-semibold text-emerald-700"><%= advanced.totalBookings %></span>
+    </div>
+
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Tổng doanh thu</span>
+      <span class="text-2xl font-semibold text-blue-700">
+        <%= (advanced.totalRevenue || 0).toLocaleString() %> ₫
+      </span>
+    </div>
+
+    <div class="bg-white shadow rounded-xl p-4 flex flex-col items-start">
+      <span class="text-slate-500 text-sm">Đơn hoàn thành</span>
+      <span class="text-2xl font-semibold text-purple-700"><%= advanced.completedBookings %></span>
+    </div>
+
   </div>
 
+
+  <!-- Revenue Chart -->
+  <div class="bg-white shadow rounded-xl p-6 mt-8">
+    <h3 class="text-lg font-semibold mb-4">Doanh thu theo tháng</h3>
+    <canvas id="revenueChart" height="100"></canvas>
+  </div>
+
+
+  <!-- Top Services -->
+  <div class="bg-white shadow rounded-xl p-6 mt-8">
+    <h3 class="text-lg font-semibold mb-4">Top 5 dịch vụ được đặt nhiều nhất</h3>
+
+    <ul class="divide-y">
+      <% if (advanced.topServices && advanced.topServices.length) { %>
+        <% advanced.topServices.forEach(function(s) { %>
+          <li class="flex justify-between py-2">
+            <span><%= s.name %></span>
+            <span class="font-semibold"><%= s.total %> lượt</span>
+          </li>
+        <% }); %>
+      <% } else { %>
+        <p class="text-sm text-slate-500">Chưa có dữ liệu.</p>
+      <% } %>
+    </ul>
+  </div>
+
+
+  <!-- Footer -->
   <div class="text-center text-sm text-slate-500 mt-8">
     <p>🚗 Hệ thống quản lý cửa hàng sửa xe máy</p>
     <p class="mt-1">© 2025 - Đồ án chuyên ngành</p>
   </div>
+
 </div>
+
+
+<!-- SAFE JSON PASSING -->
+<div id="chart-data"
+     data-labels='<%- JSON.stringify(advanced.monthly.map(function(m){ return m.month })) %>'
+     data-values='<%- JSON.stringify(advanced.monthly.map(function(m){ return m.revenue })) %>'>
+</div>
+
+
+<!-- ChartJS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Lấy data an toàn từ HTML attribute
+  const el = document.getElementById("chart-data");
+
+  const revenueLabels = JSON.parse(el.dataset.labels);
+  const revenueData   = JSON.parse(el.dataset.values);
+
+  new Chart(document.getElementById("revenueChart"), {
+    type: "line",
+    data: {
+      labels: revenueLabels,
+      datasets: [{
+        label: "Doanh thu (₫)",
+        data: revenueData,
+        borderWidth: 3,
+        tension: 0.3,
+      }],
+    },
+  });
+</script>
