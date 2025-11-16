@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'tabs/mechanic_schedule_tab.dart';
-import 'tabs/mechanic_diagnosis_page.dart';
 import 'tabs/mechanic_profile_tab.dart';
 
 class MechanicHomeScreen extends StatefulWidget {
@@ -28,9 +27,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
       appBar: AppBar(
         title: Text(
           _selectedIndex == 0
-              ? 'Lịch làm việc hôm nay'
-              : _selectedIndex == 1
-              ? 'Đánh giá tình trạng xe'
+              ? 'Lịch làm việc '
               : 'Hồ sơ cá nhân',
         ),
       ),
