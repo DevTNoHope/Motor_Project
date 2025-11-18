@@ -107,6 +107,8 @@ async function checkOverlap(
   }
 }
 
+const { sendBookingEmail } = require("../utils/mailer");
+
 async function createBooking(accId, payload) {
   const {
     vehicleId,
@@ -181,6 +183,22 @@ async function createBooking(accId, payload) {
     });
   }
 
+  // 🔔 Gửi email xác nhận đặt lịch cho người dùng
+  try {
+    const acc = await Acc.findByPk(user.acc_id);
+    if (acc?.email) {
+      const formattedDate = dayjs(startDt).format("HH:mm DD/MM/YYYY");
+      await sendBookingEmail(acc.email, {
+        name: acc.name || "Khách hàng",
+        vehicle: `${vehicle.brand} ${vehicle.model} (${vehicle.plate_no})`,
+        startTime: formattedDate,
+      });
+      console.log(`✅ Email xác nhận gửi đến: ${acc.email}`);
+    }
+  } catch (mailErr) {
+    console.error("⚠️ Gửi email thất bại:", mailErr.message);
+  }
+
   // nếu có REPAIR → sau khi Admin approve, thợ sẽ chuyển `IN_DIAGNOSIS` rồi cập nhật lại `end_dt` dựa trên `labor_est_min`.
   return {
     id: booking.id,
@@ -190,6 +208,7 @@ async function createBooking(accId, payload) {
     end_dt: booking.end_dt,
   };
 }
+
 
 async function listMyBookings(accId) {
   const user = await ensureUserByAcc(accId);
