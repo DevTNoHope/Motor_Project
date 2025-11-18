@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/booking.dart';
 import '../models/role.dart';
 import '../views/auth/login_screen.dart';
+import '../views/auth/register_screen.dart';
 import '../views/booking/booking_detail_screen.dart';
 import '../views/booking/booking_diagnosis_screen.dart';
 import '../views/booking/booking_flow_screen.dart';
@@ -20,6 +21,7 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+    GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
     GoRoute(path: '/vehicles', builder: (_, __) => const VehicleListScreen()),
     GoRoute(path: '/mechanic', builder: (_, __) => const MechanicHomeScreen()),
     GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
