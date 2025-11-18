@@ -59,6 +59,17 @@ class MechanicBookingService {
       rethrow;
     }
   }
+  /// ✅ Lấy danh sách tất cả phụ tùng có sẵn từ API
+  Future<List<dynamic>> getAllParts() async {
+    try {
+      final res = await _dio.get('/mechanic/parts'); // ✅ dùng endpoint mới
+      if (res.data is List) return res.data;
+      return [];
+    } catch (e) {
+      debugPrint('Lỗi khi tải danh sách phụ tùng: $e');
+      return [];
+    }
+  }
 
 
 
