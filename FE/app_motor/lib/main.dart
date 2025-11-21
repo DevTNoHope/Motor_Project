@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'routes/app_router.dart';
 import 'controllers/auth_controller.dart';
+import 'controllers/notification_controller.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +13,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthController()..init())],
+      providers: [ChangeNotifierProvider(create: (_) => AuthController()..init()),
+        ChangeNotifierProvider(
+          create: (_) => NotificationController()..init(),
+        )],
       child: MaterialApp.router(
         title: 'Sửa Xe - Khách hàng',
         debugShowCheckedModeBanner: false,

@@ -367,3 +367,28 @@ ALTER TABLE Bookings
   ADD COLUMN total_amount         DECIMAL(10,2) NULL;
 ADD COLUMN stock_deducted TINYINT(1) NOT NULL DEFAULT 0;
 
+CREATE TABLE `Notifications` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `title` VARCHAR(191) NOT NULL,
+  `body` TEXT NOT NULL,
+  `type` ENUM(
+    'BOOKING_CREATED',
+    'BOOKING_CANCELLED',
+    'BOOKING_APPROVED',
+    'BOOKING_REJECTED',
+    'BOOKING_STARTED',
+    'BOOKING_IN_DIAGNOSIS',
+    'BOOKING_IN_PROGRESS',
+    'BOOKING_DONE',
+    'REVIEW_CREATED'
+  ) NOT NULL,
+  `booking_id` BIGINT UNSIGNED NULL,
+  `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_notifications_user` (`user_id`),
+  INDEX `idx_notifications_booking` (`booking_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+

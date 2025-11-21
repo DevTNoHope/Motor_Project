@@ -26,6 +26,19 @@ class AuthService {
     return parseRole(payload['roleCode'] as String?);
   }
 
+  Future<AppRole> loginWithGoogle(String idToken) async {
+    final res = await _dio.post(
+      '/auth/google-login',
+      data: {'idToken': idToken},
+    );
+
+    final token = res.data['accessToken'] as String;
+    await _storage.write(key: 'accessToken', value: token);
+
+    final payload = JwtDecoder.decode(token);
+    return parseRole(payload['roleCode'] as String?);
+  }
+
   Future<void> logout() async {
     await _storage.delete(key: 'accessToken');
   }
@@ -37,4 +50,21 @@ class AuthService {
     if (token == null || token.isEmpty) return AppRole.unknown;
     return parseRole(JwtDecoder.decode(token)['roleCode'] as String?);
   }
+
+  Future<String?> currentName() async {
+    final token = await _storage.read(key: 'accessToken');
+    if (token == null || token.isEmpty) return null;
+    final payload = JwtDecoder.decode(token);
+    return payload['name'] as String?;
+  }
+
+  Future<int?> currentUserId() async {
+    final token = await _storage.read(key: 'accessToken');
+    if (token == null || token.isEmpty) return null;
+    final payload = JwtDecoder.decode(token);
+
+    print('JWT payload: $payload');
+    return payload['accId'] as int?;
+  }
+
 }

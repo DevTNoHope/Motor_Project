@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { body, oneOf } = require('express-validator');
-const { register, loginCtrl } = require('../../controllers/auth.controller');
+const { register, loginCtrl, googleLoginCtrl } = require('../../controllers/auth.controller');
 
 /**
  * Đăng ký khách hàng (USER)
@@ -29,6 +29,12 @@ router.post(
   ], 'Email or phone required'),
   body('password').isLength({ min: 6 }),
   loginCtrl
+);
+
+router.post(
+  '/google-login',
+  body('idToken').isString().withMessage('idToken is required'),
+  googleLoginCtrl
 );
 
 module.exports = router;

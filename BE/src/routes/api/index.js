@@ -23,10 +23,6 @@ router.use("/admin", require("./admin.stats.api"));
 
 router.use('/mechanic/parts', require('./mechanic.parts.api'));
 
-// TODO: sau này thêm:
-// router.use('/auth', require('./auth.api'));
-// router.use('/services', require('./services.api'));
-// router.use('/bookings', require('./bookings.api'));
-// ...
+router.use('/notifications', require('./notifications.api'));
 
 module.exports = router;

@@ -18,6 +18,7 @@ const PurchaseOrder = require('./purchaseOrder.model')(sequelize);
 const PurchaseOrderItem = require('./purchaseOrderItem.model')(sequelize);
 const Inventory = require('./inventory.model')(sequelize);
 const Supplier = require('./supplier.model')(sequelize);
+const Notification = require('./notification.model')(sequelize);
 
 // Associations
 Acc.belongsTo(Role, { foreignKey: 'role_id' });
@@ -74,5 +75,11 @@ Service.hasMany(ServicePart,   { foreignKey: 'service_id' });
 BookingPart.belongsTo(Part,    { foreignKey: 'part_id' });
 Part.hasMany(BookingPart,      { foreignKey: 'part_id' });
 
-module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory, ServicePart, BookingPart, Supplier };
+Notification.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(Notification, { foreignKey: 'user_id' });
+
+Notification.belongsTo(Booking, { foreignKey: 'booking_id' });
+Booking.hasMany(Notification, { foreignKey: 'booking_id' });
+    
+module.exports = { sequelize, Role, Acc, User, Emp, Vehicle, Service, Booking, BookingService, Diagnosis, Workshift, PartType, Part, PurchaseOrder, PurchaseOrderItem, Inventory, ServicePart, BookingPart, Supplier, Notification };
 
