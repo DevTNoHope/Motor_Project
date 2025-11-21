@@ -1,8 +1,11 @@
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const { Acc, Role, User } = require('../models');
 
 const ROUNDS = Number(process.env.BCRYPT_ROUNDS || 10);
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 async function hashPassword(plain) {
   return bcrypt.hash(plain, ROUNDS);
@@ -92,5 +95,70 @@ async function login({ email, phone, password }) {
     account: { id: acc.id, name: acc.name, email: acc.email, phone: acc.phone }
   };
 }
+/**
+ * Đăng nhập bằng google
+ */
+async function loginWithGoogle({ idToken }) {
+  // 1. Verify idToken với Google
+  const ticket = await googleClient.verifyIdToken({
+    idToken,
+    audience: process.env.GOOGLE_CLIENT_ID
+  });
+  const payload = ticket.getPayload();
+  // payload thường có: sub, email, name, picture, given_name, family_name, ...
 
-module.exports = { registerUser, login };
+  const googleId = payload.sub;
+  const email = payload.email;
+  const name = payload.name || email;
+
+  // 2. Lấy role USER
+  const roleUser = await Role.findOne({ where: { code: 'USER' } });
+  if (!roleUser) {
+    throw Object.assign(new Error('Role USER not found'), { status: 500, code: 'ROLE_MISSING' });
+  }
+
+  // 3. Tìm account đã tồn tại
+  let acc = await Acc.findOne({
+    where: { email }, // có thể thêm cột google_id nếu bạn migrate DB
+    include: [{ model: Role, attributes: ['code', 'name'] }]
+  });
+
+  // 4. Nếu chưa có thì tạo mới
+  if (!acc) {
+    const randomPassword = crypto.randomBytes(16).toString('hex');
+    const passwordHash = await hashPassword(randomPassword);
+    acc = await Acc.create({
+      role_id: roleUser.id,
+      email: email,
+      phone: null,
+      // Với account login bằng Google, có thể để password_hash null hoặc random
+      password_hash: passwordHash,
+      name,
+      gender: null,
+      birth_year: null,
+      created_at: new Date()
+    });
+
+    await User.create({ acc_id: acc.id }); // tạo profile user
+
+    // để signToken dùng được role
+    acc.Role = roleUser;
+  }
+
+  // Nếu acc lấy từ DB mà không include Role, thì nhớ nạp lại Role
+  if (!acc.Role) {
+    acc = await Acc.findOne({
+      where: { id: acc.id },
+      include: [{ model: Role, attributes: ['code', 'name'] }]
+    });
+  }
+
+  const accessToken = signToken(acc);
+  return {
+    accessToken,
+    role: acc.Role.code,
+    account: { id: acc.id, name: acc.name, email: acc.email, phone: acc.phone }
+  };
+}
+
+module.exports = { registerUser, login, loginWithGoogle };

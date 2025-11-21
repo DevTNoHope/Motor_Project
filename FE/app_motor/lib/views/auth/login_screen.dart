@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _form = GlobalKey<FormState>();
-  final _email = TextEditingController(text: 'user1@demo.local');
+  final _email = TextEditingController(text: 'user3@demo.local');
   final _pass  = TextEditingController(text: '123456');
 
   @override
@@ -147,6 +147,51 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 )
                               ],
+                            ),
+
+                            const SizedBox(height: 20),
+                            /// 👉 Thêm separator "hoặc"
+                            Row(
+                              children: const [
+                                Expanded(child: Divider()),
+                                Padding(
+                                  padding:
+                                  EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: Text('hoặc'),
+                                ),
+                                Expanded(child: Divider()),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+                            /// 🔹 Nút Đăng nhập bằng Google
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final role = await auth.loginWithGoogle();
+                                  if (!mounted || role == null) return;
+
+                                  if (role == AppRole.admin) {
+                                    await showDialog(
+                                      context: context,
+                                      builder: (_) => const AlertDialog(
+                                        title: Text('Không hỗ trợ'),
+                                        content: Text(
+                                          'Tài khoản admin chỉ đăng nhập thông qua admin web.',
+                                        ),
+                                      ),
+                                    );
+                                    await auth.logout();
+                                  } else if (role == AppRole.mechanic) {
+                                    context.go('/mechanic');
+                                  } else {
+                                    context.go('/');
+                                  }
+                                },
+                                icon: const Icon(Icons.login), // hoặc icon Google asset
+                                label: const Text('Đăng nhập bằng Google'),
+                              ),
                             ),
 
                             const SizedBox(height: 40),

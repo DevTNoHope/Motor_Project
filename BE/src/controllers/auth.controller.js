@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const { registerUser, login } = require('../services/auth.service');
+const { registerUser, login, loginWithGoogle } = require('../services/auth.service');
 
 async function register(req, res, next) {
   try {
@@ -21,4 +21,15 @@ async function loginCtrl(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { register, loginCtrl };
+async function googleLoginCtrl(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ code: 'VALIDATION_ERROR', errors: errors.array() });
+
+    const result = await loginWithGoogle({ idToken: req.body.idToken });
+    return res.json(result);
+  } catch (e) { next(e); }
+}
+
+module.exports = { register, loginCtrl, googleLoginCtrl };

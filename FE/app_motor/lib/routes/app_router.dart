@@ -15,6 +15,7 @@ import '../views/booking/booking_history_screen.dart';
 import '../views/home/home_screen.dart';
 import '../views/mechanic/mechanic_home_screen.dart';
 import '../views/mechanic/tabs/mechanic_diagnosis_page.dart';
+import '../views/notification/notification_screen.dart';
 import '../views/vehicle/vehicle_list_screen.dart';
 
 final appRouter = GoRouter(
@@ -25,6 +26,15 @@ final appRouter = GoRouter(
     GoRoute(path: '/vehicles', builder: (_, __) => const VehicleListScreen()),
     GoRoute(path: '/mechanic', builder: (_, __) => const MechanicHomeScreen()),
     GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+    // 🔔 màn danh sách thông báo
+    GoRoute(
+      path: '/notifications',
+      builder: (_, __) => AuthGate(
+        allowed: {AppRole.user},
+        redirectWhenDenied: '/login',
+        child: NotificationScreen(),
+      ),
+    ),
     GoRoute(
       path: '/booking',
       builder: (_, __) => AuthGate(

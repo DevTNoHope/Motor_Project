@@ -19,6 +19,7 @@ const {
   sequelize,
 } = require("../models");
 const { isOverlap } = require("../utils/overlap");
+const notificationService = require("./notification.service");
 
 // cấu hình
 const DIAGNOSIS_PLACEHOLDER_MIN = 30; // slot chẩn đoán cho REPAIR trước khi ước lượng
@@ -199,6 +200,9 @@ async function createBooking(accId, payload) {
     console.error("⚠️ Gửi email thất bại:", mailErr.message);
   }
 
+    // 🔔 Tạo notification "đặt lịch thành công" cho khách
+  await notificationService.createBookingNotification("BOOKING_CREATED", booking);
+
   // nếu có REPAIR → sau khi Admin approve, thợ sẽ chuyển `IN_DIAGNOSIS` rồi cập nhật lại `end_dt` dựa trên `labor_est_min`.
   return {
     id: booking.id,
@@ -255,6 +259,10 @@ async function cancelMyBooking(accId, id) {
   }
   b.status = "CANCELED";
   await b.save();
+
+  // 🔔 Thông báo "Bạn đã hủy lịch"
+  await notificationService.createBookingNotification("BOOKING_CANCELLED", b);
+
   return { ok: true };
 }
 
@@ -297,6 +305,10 @@ async function adminApprove(bookingId) {
   }
   b.status = "APPROVED";
   await b.save();
+
+  // 🔔 Thông báo "Lịch đã được xác nhận"
+  await notificationService.createBookingNotification("BOOKING_APPROVED", b);
+
   return b;
 }
 
@@ -397,6 +409,9 @@ async function mechanicDiagnose(
   b.end_dt = end.toDate();
   b.status = "IN_DIAGNOSIS";
   await b.save();
+
+   // 🔔 Thông báo "Xe đang được kiểm tra"
+  await notificationService.createBookingNotification("BOOKING_IN_DIAGNOSIS", b);
 
   return b;
 }
@@ -579,6 +594,10 @@ async function mechanicStart(bookingId, mechanicAccId) {
     await b.save({ transaction: t });
 
     await t.commit();
+
+    // 🔔 Thông báo "Bắt đầu sửa xe"
+    await notificationService.createBookingNotification("BOOKING_STARTED", b);
+
     return b;
   } catch (e) {
     await t.rollback();
@@ -618,6 +637,10 @@ async function mechanicComplete(bookingId, mechanicAccId) {
     await b.save({ transaction: t });
 
     await t.commit();
+
+    // 🔔 Thông báo "Hoàn thành sửa xe"
+    await notificationService.createBookingNotification("BOOKING_DONE", b);
+    
     return { ok: true, id: b.id, status: b.status, ...totals };
   } catch (e) {
     await t.rollback();
@@ -711,6 +734,13 @@ async function adminCancel(bookingId, reason) {
   b.status = "CANCELED";
   if (reason) b.notes_mechanic = `[ADMIN CANCEL] ${reason}`;
   await b.save();
+
+  // 🔔 Thông báo "Lịch bị hủy" cho khách, kèm lý do (nếu có)
+  await notificationService.createBookingNotification("BOOKING_REJECTED", b, {
+    body: reason
+      ? `Lịch hẹn đã bị hủy. Lý do: ${reason}.`
+      : "Lịch hẹn đã bị hủy bởi cửa hàng.",
+  });
 
   return { ok: true, id: b.id, status: b.status };
 }

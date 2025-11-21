@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../controllers/notification_controller.dart';
 import '../../models/role.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -51,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final theme = Theme.of(context);
     final roleLabel = _roleLabel(auth.role);
+    final displayName = auth.name ?? roleLabel;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              roleLabel,
+              displayName,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -76,9 +78,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search),
+          // 🔔 nút thông báo
+          Consumer<NotificationController>(
+            builder: (context, notiCtrl, _) {
+              final count = notiCtrl.unreadCount;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    tooltip: 'Thông báo',
+                    onPressed: () {
+                      context.push('/notifications');
+                    },
+                    icon: const Icon(Icons.notifications),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           IconButton(
             onPressed: () async {
