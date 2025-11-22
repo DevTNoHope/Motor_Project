@@ -48,6 +48,7 @@
           <a href="/admin/employees/<%= emp.id %>/edit"
              class="text-blue-600 hover:underline">Sửa</a>
           <form action="/admin/employees/<%= emp.id %>?_method=DELETE" method="POST" class="inline">
+            <input type="hidden" name="_method" value="DELETE">
             <button type="submit" class="text-red-600 hover:underline ml-2"
                     onclick="return confirm('Xóa thợ này?')">Xóa</button>
           </form>
