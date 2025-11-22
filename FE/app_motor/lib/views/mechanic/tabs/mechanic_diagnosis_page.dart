@@ -38,8 +38,8 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
         _allParts = parts;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Không tải được danh sách phụ tùng: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không tải được danh sách phụ tùng: $e')));
     } finally {
       setState(() => _loadingParts = false);
     }
@@ -62,8 +62,18 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
     }
   }
 
-  /// 🔹 Thêm dòng phụ tùng
+  /// 🔹 Thêm dòng phụ tùng (chặn trùng ID)
   void _addPart() {
+    final existingIds = _requiredParts.map((e) => e['partId']).whereType<int>().toList();
+    final available = _allParts.where((p) => !existingIds.contains(p['id'])).toList();
+
+    if (available.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã chọn hết các phụ tùng có sẵn')),
+      );
+      return;
+    }
+
     setState(() {
       _requiredParts.add({'partId': null, 'qty': 1});
     });
@@ -79,9 +89,11 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
   Future<void> _submit(int bookingId) async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Lọc phụ tùng hợp lệ
+    // Lọc phụ tùng hợp lệ và loại bỏ trùng
+    final uniqueIds = <int>{};
     final validParts = _requiredParts
         .where((p) => p['partId'] != null && p['qty'] > 0)
+        .where((p) => uniqueIds.add(p['partId'])) // chặn trùng
         .toList();
 
     setState(() => _submitting = true);
@@ -104,9 +116,8 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
       );
       Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi gửi phiếu đánh giá: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Lỗi khi gửi phiếu đánh giá: $e')));
     } finally {
       setState(() => _submitting = false);
     }
@@ -141,9 +152,8 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 4,
-                validator: (v) => v == null || v.isEmpty
-                    ? 'Vui lòng nhập chẩn đoán'
-                    : null,
+                validator: (v) =>
+                v == null || v.isEmpty ? 'Vui lòng nhập chẩn đoán' : null,
               ),
               const SizedBox(height: 16),
 
@@ -176,8 +186,7 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
                 children: [
                   const Text(
                     'Phụ tùng cần sử dụng',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   IconButton(
                     onPressed: _addPart,
@@ -195,13 +204,19 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
                 final i = entry.key;
                 final part = entry.value;
 
+                final existingIds = _requiredParts
+                    .asMap()
+                    .entries
+                    .where((e) => e.key != i && e.value['partId'] != null)
+                    .map((e) => e.value['partId'])
+                    .toSet();
+
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Row(
                       children: [
-                        // Dropdown chọn phụ tùng
                         Expanded(
                           flex: 3,
                           child: DropdownButtonFormField<int>(
@@ -210,24 +225,19 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
                               labelText: 'Phụ tùng',
                               border: OutlineInputBorder(),
                             ),
-                            items: _allParts.map<DropdownMenuItem<int>>(
-                                  (p) {
-                                return DropdownMenuItem<int>(
-                                  value: p['id'],
-                                  child: Text(p['name']),
-                                );
-                              },
-                            ).toList(),
-                            onChanged: (val) =>
-                                setState(() => part['partId'] = val),
-                            validator: (v) => v == null
-                                ? 'Chọn phụ tùng'
-                                : null,
+                            items: _allParts
+                                .where((p) => !existingIds.contains(p['id']))
+                                .map<DropdownMenuItem<int>>((p) {
+                              return DropdownMenuItem<int>(
+                                value: p['id'],
+                                child: Text(p['name']),
+                              );
+                            }).toList(),
+                            onChanged: (val) => setState(() => part['partId'] = val),
+                            validator: (v) => v == null ? 'Chọn phụ tùng' : null,
                           ),
                         ),
                         const SizedBox(width: 8),
-
-                        // Số lượng
                         Expanded(
                           flex: 1,
                           child: TextFormField(
@@ -237,15 +247,13 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
                               labelText: 'SL',
                               border: OutlineInputBorder(),
                             ),
-                            onChanged: (v) =>
-                            part['qty'] = int.tryParse(v) ?? 1,
+                            onChanged: (v) => part['qty'] = int.tryParse(v) ?? 1,
                           ),
                         ),
                         const SizedBox(width: 8),
                         IconButton(
                           onPressed: () => _removePart(i),
-                          icon: const Icon(Icons.delete,
-                              color: Colors.redAccent),
+                          icon: const Icon(Icons.delete, color: Colors.redAccent),
                         ),
                       ],
                     ),
@@ -256,8 +264,7 @@ class _MechanicDiagnosisPageState extends State<MechanicDiagnosisPage> {
               const SizedBox(height: 24),
 
               ElevatedButton.icon(
-                onPressed:
-                _submitting ? null : () => _submit(booking['id']),
+                onPressed: _submitting ? null : () => _submit(booking['id']),
                 icon: const Icon(Icons.send),
                 label: _submitting
                     ? const Text('Đang gửi...')
