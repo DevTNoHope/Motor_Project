@@ -74,30 +74,72 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Xe của tôi')),
-      floatingActionButton: FloatingActionButton(onPressed: _openCreate, child: const Icon(Icons.add)),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-        onRefresh: _load,
-        child: ListView.separated(
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: _items.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (_, i) {
-            final v = _items[i];
-            return ListTile(
-              title: Text(v.plateNo),
-              subtitle: Text([
-                if (v.brand != null) v.brand,
-                if (v.model != null) v.model,
-                if (v.year != null) '${v.year}',
-                if (v.color != null) v.color,
-              ].whereType<String>().join(' · ')),
-              trailing: PopupMenuButton<String>(
+  Widget _buildVehicleCard(Vehicle v) {
+    final mainLine = [
+      if (v.brand != null && v.brand!.isNotEmpty) v.brand,
+      if (v.model != null && v.model!.isNotEmpty) v.model,
+    ].whereType<String>().join(' · ');
+
+    final infoLine = [
+      if (v.year != null) 'Năm ${v.year}',
+      if (v.color != null && v.color!.isNotEmpty) 'Màu ${v.color}',
+    ].join(' · ');
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openEdit(v),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                child: const Icon(Icons.motorcycle),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      v.plateNo,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (mainLine.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        mainLine,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    if (infoLine.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        infoLine,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
                 onSelected: (val) {
                   if (val == 'edit') _openEdit(v);
                   if (val == 'delete') _confirmDelete(v);
@@ -107,11 +149,70 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                   PopupMenuItem(value: 'delete', child: Text('Xoá')),
                 ],
               ),
-              onTap: () => _openEdit(v),
-            );
-          },
+            ],
+          ),
         ),
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Xe của tôi'),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreate,
+        icon: const Icon(Icons.add),
+        label: const Text('Thêm xe'),
+      ),
+      body: SafeArea(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+          onRefresh: _load,
+          child: _items.isEmpty
+              ? ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              const SizedBox(height: 80),
+              Icon(
+                Icons.motorcycle_outlined,
+                size: 64,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant,
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'Chưa có xe nào.\nHãy thêm chiếc xe đầu tiên của bạn!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          )
+              : ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+            itemCount: _items.length,
+            separatorBuilder: (_, __) =>
+            const SizedBox(height: 8),
+            itemBuilder: (_, i) {
+              final v = _items[i];
+              return _buildVehicleCard(v);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
 }

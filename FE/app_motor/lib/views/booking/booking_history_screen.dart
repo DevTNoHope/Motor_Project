@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/booking.dart';
 import '../../services/booking_service.dart';
+import '../../utils/formatters.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
   const BookingHistoryScreen({super.key});
@@ -82,8 +83,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         title: const Text('Hủy lịch hẹn'),
         content: Text(
           'Bạn có chắc muốn hủy lịch #${b.id}?\n'
-              'Thời gian: ${_dateFmt.format(b.startDt.toLocal())} '
-              '${_timeFmt.format(b.startDt.toLocal())} - ${_timeFmt.format(b.endDt.toLocal())}',
+              'Thời gian: ${_dateFmt.format(b.startDt)} '
+              '${_timeFmt.format(b.startDt)} - ${_timeFmt.format(b.endDt)}',
         ),
         actions: [
           TextButton(
@@ -240,9 +241,9 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               final b = items[index];
               final theme = Theme.of(context);
 
-              final dateStr = _dateFmt.format(b.startDt.toLocal());
-              final startStr = _timeFmt.format(b.startDt.toLocal());
-              final endStr = _timeFmt.format(b.endDt.toLocal());
+              final dateStr = _dateFmt.format(b.startDt);
+              final startStr = _timeFmt.format(b.startDt);
+              final endStr = _timeFmt.format(b.endDt);
 
               final statusLabel = _statusLabel(b.status);
               final statusColor = _statusColor(b.status);
@@ -355,7 +356,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                         if (b.totalAmount != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Tổng tiền: ${b.totalAmount} đ',
+                            'Tổng tiền: ${formatCurrency(b.totalAmount)}',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,

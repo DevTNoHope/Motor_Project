@@ -103,9 +103,45 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
     }
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    TextInputType? keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    String? Function(String?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        textCapitalization: textCapitalization,
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          isDense: true,
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.initial != null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? 'Cập nhật xe' : 'Thêm xe'),
@@ -116,32 +152,94 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
               onPressed: _saving ? null : _deleteCurrent,
               tooltip: 'Xoá xe',
             ),
-          TextButton(
-            onPressed: _saving ? null : _submit,
-            child: _saving
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Lưu'),
-          ),
+          const SizedBox(width: 4),
         ],
       ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              controller: _plate,
-              decoration: const InputDecoration(labelText: 'Biển số (plate_no)'),
-              textCapitalization: TextCapitalization.characters,
-              validator: (v) => (v == null || v.trim().length < 4) ? 'Nhập biển số hợp lệ' : null,
+      body: SafeArea(
+        child: Form(
+          key: _form,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Thông tin xe',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Biển số
+                    _buildTextField(
+                      controller: _plate,
+                      label: 'Biển số',
+                      hint: 'VD: 59A1-12345',
+                      textCapitalization: TextCapitalization.characters,
+                      validator: (v) {
+                        if (v == null || v.trim().length < 4) {
+                          return 'Nhập biển số hợp lệ';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    // Hãng
+                    _buildTextField(
+                      controller: _brand,
+                      label: 'Hãng xe',
+                    ),
+
+                    // Dòng xe
+                    _buildTextField(
+                      controller: _model,
+                      label: 'Dòng xe',
+                    ),
+
+                    // Năm
+                    _buildTextField(
+                      controller: _year,
+                      label: 'Năm sản xuất',
+                      keyboardType: TextInputType.number,
+                    ),
+
+                    // Màu
+                    _buildTextField(
+                      controller: _color,
+                      label: 'Màu xe',
+                    ),
+
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _saving ? null : _submit,
+                        icon: _saving
+                            ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                            : const Icon(Icons.check),
+                        label: Text(isEdit ? 'Lưu thay đổi' : 'Thêm xe'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            TextFormField(controller: _brand, decoration: const InputDecoration(labelText: 'Hãng (brand)')),
-            TextFormField(controller: _model, decoration: const InputDecoration(labelText: 'Dòng xe (model)')),
-            TextFormField(controller: _year, decoration: const InputDecoration(labelText: 'Năm (year)'), keyboardType: TextInputType.number),
-            TextFormField(controller: _color, decoration: const InputDecoration(labelText: 'Màu (color)')),
-          ],
+          ),
         ),
       ),
     );
   }
+
 }

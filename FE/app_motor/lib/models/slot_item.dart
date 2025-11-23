@@ -38,7 +38,7 @@ class SlotItem {
   }
 
   String get timeRangeLabel =>
-      '${_fmtTime(start.toLocal())} - ${_fmtTime(end.toLocal())}';
+      '${_fmtTime(start)} - ${_fmtTime(end)}';
 
   static String _fmtTime(DateTime dt) {
     final h = dt.hour.toString().padLeft(2, '0');
