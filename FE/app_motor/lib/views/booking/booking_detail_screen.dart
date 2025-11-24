@@ -89,8 +89,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             );
           }
           final b = snap.data!;
-          final startLocal = b.startDt.toLocal();
-          final endLocal = b.endDt.toLocal();
+          final startLocal = b.startDt;
+          final endLocal = b.endDt;
 
           final dateStr = _dateFmt.format(startLocal);
           final timeRange =
@@ -178,7 +178,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             const Icon(Icons.schedule, size: 18),
                             const SizedBox(width: 6),
                             Text(
-                              'Tạo lúc: ${_dateFmt.format(b.createdAt.toLocal())} ${_timeFmt.format(b.createdAt.toLocal())}',
+                              'Tạo lúc: ${_dateFmt.format(b.createdAt)} ${_timeFmt.format(b.createdAt)}',
                               style: const TextStyle(fontSize: 12),
                             ),
                           ],
@@ -241,7 +241,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             ),
                           if (price != null)
                             Text(
-                              'Đơn giá: $price đ',
+                              'Đơn giá: ${formatCurrency(price)}',
                               style: const TextStyle(fontSize: 12),
                             ),
                           if (duration != null)
@@ -363,7 +363,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  Widget _buildAmountRow(String label, String? value, {bool isBold = false}) {
+  Widget _buildAmountRow(String label, num? value, {bool isBold = false}) {
     final textStyle = TextStyle(
       fontSize: 13,
       fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
@@ -375,7 +375,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           Text(label, style: textStyle),
           const Spacer(),
           Text(
-            value != null ? '$value đ' : '-',
+            value != null ? formatCurrency(value) : '-',
             style: textStyle,
           ),
         ],

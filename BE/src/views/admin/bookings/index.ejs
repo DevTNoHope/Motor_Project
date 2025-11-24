@@ -1,140 +1,205 @@
-<!doctype html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8"/>
-  <title><%= title %></title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <style> .inline{display:inline} .w-16{width:16rem} .w-12{width:12rem} </style>
-</head>
-<body>
-<main class="container">
-  <hgroup>
-    <h1>Quản lý đặt lịch</h1>
-    <p>Duyệt / Hủy / Gắn thợ</p>
-  </hgroup>
+<!-- Bộ lọc -->
+<form method="GET" action="/admin/bookings"
+      class="mb-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+  <div>
+    <label class="block text-sm font-medium mb-1">Trạng thái</label>
+    <select name="status" class="w-full border rounded px-2 py-1 text-sm">
+      <option value="">-- Tất cả --</option>
+      <% ['PENDING','APPROVED','IN_DIAGNOSIS','IN_PROGRESS','DONE','CANCELED'].forEach(st => { %>
+        <option value="<%= st %>" <%= (filters.status===st?'selected':'') %>><%= st %></option>
+      <% }) %>
+    </select>
+  </div>
 
-  <!-- Bộ lọc -->
-  <form method="GET" action="/admin/bookings" class="grid">
-    <label>Trạng thái
-      <select name="status">
-        <option value="">-- Tất cả --</option>
-        <% ['PENDING','APPROVED','IN_DIAGNOSIS','IN_PROGRESS','DONE','CANCELED'].forEach(st => { %>
-          <option value="<%= st %>" <%= (filters.status===st?'selected':'') %>><%= st %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Từ ngày
-      <input type="date" name="dateFrom" value="<%= filters.dateFrom %>">
-    </label>
-    <label>Đến ngày
-      <input type="date" name="dateTo" value="<%= filters.dateTo %>">
-    </label>
-    <label>Thợ
-      <select name="mechanicId">
-        <option value="">-- Tất cả --</option>
-        <% mechanics.forEach(m => { %>
-          <option value="<%= m.id %>" <%= (String(filters.mechanicId)===String(m.id)?'selected':'') %>><%= m.Acc.name %></option>
-        <% }) %>
-      </select>
-    </label>
-    <div><button type="submit">Lọc</button> <a href="/admin/bookings" role="button" class="secondary">Xóa lọc</a></div>
-  </form>
+  <div>
+    <label class="block text-sm font-medium mb-1">Từ ngày</label>
+    <input type="date" name="dateFrom"
+           value="<%= filters.dateFrom %>"
+           class="w-full border rounded px-2 py-1 text-sm">
+  </div>
 
-  <!-- Bảng -->
-  <article>
-    <table role="grid">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Thời gian</th>
-          <th>Khách</th>
-          <th>Xe</th>
-          <th>Thợ</th>
-          <th>Dịch vụ</th>
-          <th>Trạng thái</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-      <% if (!data.items.length) { %>
-        <tr><td colspan="8" style="text-align:center;color:#777">Không có dữ liệu</td></tr>
-      <% } %>
-      <% data.items.forEach(b => { %>
-        <tr>
-          <td><%= b.id %></td>
-          <td>
-            <div><small>Bắt đầu:</small> <%= new Date(b.start_dt).toLocaleString() %></div>
-            <div><small>Kết thúc:</small> <%= b.end_dt ? new Date(b.end_dt).toLocaleString() : '-' %></div>
+  <div>
+    <label class="block text-sm font-medium mb-1">Đến ngày</label>
+    <input type="date" name="dateTo"
+           value="<%= filters.dateTo %>"
+           class="w-full border rounded px-2 py-1 text-sm">
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium mb-1">Thợ</label>
+    <select name="mechanicId" class="w-full border rounded px-2 py-1 text-sm">
+      <option value="">-- Tất cả --</option>
+      <% mechanics.forEach(m => { %>
+        <option value="<%= m.id %>"
+          <%= (String(filters.mechanicId)===String(m.id)?'selected':'') %>>
+          <%= m.Acc.name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="flex items-end gap-2">
+    <button type="submit"
+            class="px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700">
+      Lọc
+    </button>
+    <a href="/admin/bookings"
+       class="px-4 py-2 bg-slate-500 text-white rounded text-sm hover:bg-slate-600">
+      Xóa lọc
+    </a>
+  </div>
+</form>
+
+<!-- Bảng danh sách đơn đặt lịch -->
+<table class="w-full border border-slate-300 bg-white shadow-sm text-sm">
+  <thead class="bg-slate-100">
+    <tr>
+      <th class="p-2 border text-left w-16">ID</th>
+      <th class="p-2 border text-left">Thời gian</th>
+      <th class="p-2 border text-left">Khách / Xe</th>
+      <th class="p-2 border text-left">Thợ</th>
+      <th class="p-2 border text-left">Dịch vụ</th>
+      <th class="p-2 border text-center">Trạng thái</th>
+      <th class="p-2 border text-center w-40">Thao tác</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if (!data.items.length) { %>
+      <tr>
+        <td colspan="7" class="text-center p-4 text-gray-500">
+          Không có đơn đặt lịch nào
+        </td>
+      </tr>
+    <% } else { %>
+
+      <% 
+        // Sắp xếp: booking mới nhất ở trên cùng
+        const sortedItems = [...data.items].sort((a, b) => {
+          const ta = new Date(a.created_at || a.start_dt).getTime();
+          const tb = new Date(b.created_at || b.start_dt).getTime();
+          return tb - ta;
+        });
+      %>
+
+      <% sortedItems.forEach(b => { 
+           const statusClass = {
+             PENDING:      'bg-amber-100 text-amber-700',
+             APPROVED:     'bg-blue-100 text-blue-700',
+             IN_DIAGNOSIS: 'bg-sky-100 text-sky-700',
+             IN_PROGRESS:  'bg-rose-100 text-rose-700',
+             DONE:         'bg-emerald-100 text-emerald-700',
+             CANCELED:     'bg-slate-100 text-slate-600'
+           }[b.status] || 'bg-slate-100 text-slate-700';
+      %>
+        <tr class="hover:bg-slate-50 align-top">
+          <td class="p-2 border">#<%= b.id %></td>
+
+          <td class="p-2 border">
+            <div><span class="text-gray-500 text-xs">Bắt đầu:</span>
+              <%= new Date(b.start_dt).toLocaleString() %>
+            </div>
+            <div><span class="text-gray-500 text-xs">Kết thúc:</span>
+              <%= b.end_dt ? new Date(b.end_dt).toLocaleString() : '-' %>
+            </div>
           </td>
-          <td class="p-2">
-  <% if (b.User && b.User.Acc) { %>
-    <%= b.User.Acc.name %>
-    <%= b.User.Acc.phone ? (' (' + b.User.Acc.phone + ')') : '' %>
-  <% } else { %>-<% } %>
-</td>
-          <td class="p-2">
-  <% if (b.Vehicle) { %>
-    <%= b.Vehicle.plate_no %> - <%= b.Vehicle.model || '' %>
-  <% } else { %>-<% } %>
-</td>
-          <td class="p-2">
-  <%= (b.Employee && b.Employee.Acc) ? b.Employee.Acc.name : 'Thợ bất kỳ' %>
-</td>
-          <td>
-            <ul style="margin:0;padding-left:1rem">
-              <% (b.BookingServices||[]).forEach(bs => { %>
+
+          <td class="p-2 border">
+            <% if (b.User && b.User.Acc) { %>
+              <div class="font-semibold"><%= b.User.Acc.name %></div>
+              <div class="text-xs text-gray-500">
+                <%= b.User.Acc.phone || '' %>
+              </div>
+            <% } %>
+            <div class="text-xs text-gray-500 mt-1">
+              <% if (b.Vehicle) { %>
+                <%= b.Vehicle.plate_no %> - <%= b.Vehicle.model || '' %>
+              <% } else { %>
+                Không có thông tin xe
+              <% } %>
+            </div>
+          </td>
+
+          <td class="p-2 border">
+            <%= (b.Employee && b.Employee.Acc)
+                  ? b.Employee.Acc.name
+                  : 'Thợ bất kỳ' %>
+          </td>
+
+          <td class="p-2 border">
+            <ul class="list-disc list-inside space-y-0.5">
+              <% (b.BookingServices || []).forEach(bs => { %>
                 <li><%= bs.Service.name %> (<%= bs.Service.type %>)</li>
               <% }) %>
             </ul>
           </td>
-          <td><strong><%= b.status %></strong></td>
-          <td>
-            <!-- DUYỆT -->
-            <% if (b.status === 'PENDING') { %>
-              <form class="inline" method="POST" action="/admin/bookings/<%= b.id %>/approve">
-                <button>✔ Duyệt</button>
-              </form>
-            <% } %>
 
-            <!-- HỦY (khi chưa vào IN_PROGRESS/DONE) -->
-            <% if (!['IN_PROGRESS','DONE','CANCELED'].includes(b.status)) { %>
-              <form class="inline" method="POST" action="/admin/bookings/<%= b.id %>/cancel" onsubmit="return confirm('Hủy booking #<%= b.id %>?')">
-                <input type="hidden" name="reason" value="Admin cancel from web">
-                <button class="secondary">✖ Hủy</button>
-              </form>
-            <% } %>
+          <td class="p-2 border text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold <%= statusClass %>">
+              <%= b.status %>
+            </span>
+          </td>
 
-            <!-- GẮN THỢ (khi chưa có mechanic_id) -->
-            <% if (!b.mechanic_id && !['CANCELED','DONE'].includes(b.status)) { %>
-              <form class="inline" method="POST" action="/admin/bookings/<%= b.id %>/assign">
-                <select name="mechanicId" required>
-                  <option value="">-- chọn thợ --</option>
-                  <% mechanics.forEach(m => { %>
-                     <option value="<%= m.id %>" <%= (String(filters.mechanicId)===String(m.id)?'selected':'') %>>
-      <%= m.Acc ? m.Acc.name : ('Thợ #' + m.id) %>
-    </option>
-                  <% }) %>
-                </select>
-                <button>Gắn</button>
-              </form>
-            <% } %>
+          <td class="p-2 border text-center">
+            <div class="flex flex-col gap-1 items-stretch">
+
+              <% if (b.status === 'PENDING') { %>
+                <form method="POST"
+                      action="/admin/bookings/<%= b.id %>/approve">
+                  <button class="w-full px-2 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-700">
+                    Duyệt
+                  </button>
+                </form>
+              <% } %>
+
+              <% if (!['IN_PROGRESS','DONE','CANCELED'].includes(b.status)) { %>
+                <form method="POST"
+                      action="/admin/bookings/<%= b.id %>/cancel"
+                      onsubmit="return confirm('Hủy booking #<%= b.id %>?')">
+                  <input type="hidden" name="reason" value="Admin cancel from web">
+                  <button class="w-full px-2 py-1 rounded bg-rose-600 text-white text-xs hover:bg-rose-700">
+                    Hủy
+                  </button>
+                </form>
+              <% } %>
+
+              <% if (!b.mechanic_id && !['CANCELED','DONE'].includes(b.status)) { %>
+                <form method="POST"
+                      action="/admin/bookings/<%= b.id %>/assign"
+                      class="flex gap-1 mt-1">
+                  <select name="mechanicId" required
+                          class="flex-1 border rounded px-1 py-1 text-xs">
+                    <option value="">Thợ...</option>
+                    <% mechanics.forEach(m => { %>
+                      <option value="<%= m.id %>"
+                        <%= (String(filters.mechanicId)===String(m.id)?'selected':'') %>>
+                        <%= m.Acc ? m.Acc.name : ('Thợ #' + m.id) %>
+                      </option>
+                    <% }) %>
+                  </select>
+                  <button class="px-2 py-1 rounded bg-sky-600 text-white text-xs hover:bg-sky-700">
+                    Gắn
+                  </button>
+                </form>
+              <% } %>
+            </div>
           </td>
         </tr>
       <% }) %>
-      </tbody>
-    </table>
-  </article>
+    <% } %>
+  </tbody>
+</table>
 
-  <!-- phân trang đơn giản -->
-  <nav>
-    <ul>
-      <% for (let p=1; p<=data.pages; p++) { %>
-        <li class="<%= (p===data.page?'current':'') %>" style="display:inline;margin-right:.5rem">
-          <a href="/admin/bookings?<%= new URLSearchParams({...filters, page:p, size:data.size}).toString() %>"><%= p %></a>
-        </li>
-      <% } %>
-    </ul>
-  </nav>
-</main>
-</body>
-</html>
+<!-- Phân trang -->
+<% if (data.pages > 1) { %>
+  <div class="flex justify-center mt-4 gap-2 text-sm">
+    <% for (let p = 1; p <= data.pages; p++) { %>
+      <a href="/admin/bookings?<%= new URLSearchParams({...filters, page:p, size:data.size}).toString() %>"
+         class="px-3 py-1 rounded border
+                <%= p === data.page
+                    ? 'bg-sky-600 text-white border-sky-600'
+                    : 'bg-white text-slate-700 hover:bg-slate-100' %>">
+        <%= p %>
+      </a>
+    <% } %>
+  </div>
+<% } %>

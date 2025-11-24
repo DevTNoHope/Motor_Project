@@ -320,6 +320,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: const Icon(Icons.add_circle_outline),
                       label: const Text('Đặt lịch ngay'),
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        elevation: 2,
                         padding: const EdgeInsets.symmetric(
                           vertical: 14,
                           horizontal: 16,
@@ -393,14 +396,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
+                    child: FilledButton.icon(
                       onPressed: () => context.push('/booking-history'),
                       icon: const Icon(Icons.arrow_forward_rounded),
                       label: const Text('Đi đến lịch hẹn của tôi'),
-                      style: OutlinedButton.styleFrom(
+                      style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16),
+                          vertical: 14,
+                          horizontal: 16,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -495,30 +499,45 @@ class _QuickActionCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
       child: Ink(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           color: theme.colorScheme.surface,
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withOpacity(0.8),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
               blurRadius: 10,
               offset: const Offset(0, 4),
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(0.04),
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            Icon(icon, size: 26, color: theme.colorScheme.primary),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -526,6 +545,7 @@ class _QuickActionCard extends StatelessWidget {
       ),
     );
   }
+
 }
 
 /// Card highlight thông tin

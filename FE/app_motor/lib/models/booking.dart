@@ -1,12 +1,19 @@
 import 'service_item.dart'; // đã có từ trước (model Service)
 import 'part_model.dart';
 
+double? _toDouble(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v);
+  return null;
+}
+
 class BookingServiceItem {
   final int id;
   final int bookingId;
   final int serviceId;
   final int qty;
-  final String? priceSnapshot;
+  final double? priceSnapshot;
   final int? durationSnapshotMin;
   final ServiceItem? service; // Service trong BookingServices.Service
 
@@ -26,7 +33,7 @@ class BookingServiceItem {
       bookingId: json['booking_id'] as int,
       serviceId: json['service_id'] as int,
       qty: json['qty'] as int,
-      priceSnapshot: json['price_snapshot'] as String?,
+      priceSnapshot: _toDouble(json['price_snapshot']),
       durationSnapshotMin: json['duration_snapshot_min'] as int?,
       service: json['Service'] != null
           ? ServiceItem.fromJson(json['Service'] as Map<String, dynamic>)
@@ -75,9 +82,9 @@ class Booking {
   final String status;
   final String? notesUser;
   final String? notesMechanic;
-  final String? totalServiceAmount;
-  final String? totalPartsAmount;
-  final String? totalAmount;
+  final double? totalServiceAmount;
+  final double? totalPartsAmount;
+  final double? totalAmount;
   final bool stockDeducted;
   final DateTime createdAt;
   final List<BookingServiceItem> services;
@@ -118,11 +125,11 @@ class Booking {
       status: json['status'] as String,
       notesUser: json['notes_user'] as String?,
       notesMechanic: json['notes_mechanic'] as String?,
-      totalServiceAmount: json['total_service_amount'] as String?,
-      totalPartsAmount: json['total_parts_amount'] as String?,
-      totalAmount: json['total_amount'] as String?,
+      totalServiceAmount: _toDouble(json['total_service_amount']),
+      totalPartsAmount: _toDouble(json['total_parts_amount']),
+      totalAmount: _toDouble(json['total_amount']),
       stockDeducted: json['stock_deducted'] as bool,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       services: list,
       parts: partsJson
           .map((e) => BookingPartModel.fromJson(e as Map<String, dynamic>))

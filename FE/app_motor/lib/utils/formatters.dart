@@ -8,7 +8,8 @@ String formatTime(DateTime dt) {
   final m = dt.minute.toString().padLeft(2, '0');
   return '$h:$m';
 }
-String formatCurrency(num value) {
+String formatCurrency(num? value) {
+  if (value == null) return '-';
   return NumberFormat.currency(
     locale: 'vi_VN',
     symbol: '₫',
