@@ -88,6 +88,96 @@
       <% } %>
     </ul>
   </div>
+<!-- ===================== THỐNG KÊ THEO NGÀY ===================== -->
+<div class="bg-white shadow rounded-xl p-6 mt-10">
+  <h3 class="text-lg font-semibold mb-4">Thống kê theo ngày / khoảng ngày</h3>
+
+  <form id="filterForm" class="flex flex-wrap gap-4 items-end">
+
+    <div>
+      <label class="block mb-1 text-sm font-medium">Từ ngày</label>
+      <input type="date" id="fromDate" class="border p-2 rounded">
+    </div>
+
+    <div>
+      <label class="block mb-1 text-sm font-medium">Đến ngày</label>
+      <input type="date" id="toDate" class="border p-2 rounded">
+    </div>
+
+    <button type="button"
+            onclick="loadRangeStats()"
+            class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">
+      Xem thống kê
+    </button>
+
+    <!-- Preset buttons -->
+    <div class="flex gap-2 ml-4">
+      <button type="button" onclick="presetRange('today')" class="px-3 py-2 bg-slate-100 rounded hover:bg-slate-200 text-sm">
+        Hôm nay
+      </button>
+      <button type="button" onclick="presetRange('week')" class="px-3 py-2 bg-slate-100 rounded hover:bg-slate-200 text-sm">
+        Tuần này
+      </button>
+      <button type="button" onclick="presetRange('month')" class="px-3 py-2 bg-slate-100 rounded hover:bg-slate-200 text-sm">
+        Tháng này
+      </button>
+      <button type="button" onclick="presetRange('quarter')" class="px-3 py-2 bg-slate-100 rounded hover:bg-slate-200 text-sm">
+        Quý này
+      </button>
+    </div>
+
+  </form>
+
+  <!-- Kết quả -->
+  <div id="rangeResult" class="mt-6 text-lg text-slate-700 font-semibold">
+    Chưa có dữ liệu.
+  </div>
+</div>
+<script>
+async function loadRangeStats() {
+  const from = document.getElementById("fromDate").value;
+  const to   = document.getElementById("toDate").value;
+
+  if (!from || !to) {
+    alert("Vui lòng chọn đủ ngày bắt đầu và kết thúc!");
+    return;
+  }
+
+  const res = await fetch(`/api/v1/admin/stats/range?from=${from}&to=${to}`);
+  const data = await res.json();
+
+  document.getElementById("rangeResult").innerHTML = `
+    <p>📌 Số đơn: <b>${data.count}</b></p>
+    <p>💰 Doanh thu: <b>${data.revenue.toLocaleString()} ₫</b></p>
+  `;
+}
+
+function presetRange(type) {
+  const today = new Date();
+  let from = new Date();
+  let to   = new Date();
+
+  if (type === "today") {
+    // from = to = today
+  }
+  else if (type === "week") {
+    const d = today.getDay();
+    from.setDate(today.getDate() - d + 1);
+  }
+  else if (type === "month") {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+  else if (type === "quarter") {
+    const q = Math.floor(today.getMonth() / 3);
+    from = new Date(today.getFullYear(), q * 3, 1);
+  }
+
+  document.getElementById("fromDate").value = from.toISOString().substr(0, 10);
+  document.getElementById("toDate").value   = to.toISOString().substr(0, 10);
+
+  loadRangeStats();
+}
+</script>
 
 
   <!-- Footer -->

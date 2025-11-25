@@ -49,5 +49,31 @@ router.get("/stats", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+router.get("/range", async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) return res.status(400).json({ error: "Missing date range" });
+
+    const [rows] = await sequelize.query(`
+      SELECT 
+        COUNT(*) AS count,
+        SUM(total_amount) AS revenue
+      FROM Bookings
+      WHERE DATE(created_at) BETWEEN :from AND :to
+    `, {
+      replacements: { from, to }
+    });
+
+    res.json({
+      count: rows[0].count || 0,
+      revenue: rows[0].revenue || 0
+    });
+
+  } catch (err) {
+    console.error("range stats error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
