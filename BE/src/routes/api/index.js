@@ -20,6 +20,7 @@ router.use('/admin/service-parts', require('./admin.serviceParts.api'));
 
 router.use('/suppliers', require('./supplier.api'));
 router.use("/admin", require("./admin.stats.api"));
+router.use("/admin/stats", require("./admin.stats.api"));
 
 router.use('/mechanic/parts', require('./mechanic.parts.api'));
 
