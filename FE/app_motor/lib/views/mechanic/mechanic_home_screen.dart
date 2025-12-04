@@ -1,3 +1,4 @@
+import 'package:app_motor/views/mechanic/tabs/mechanic_stats_tab.dart';
 import 'package:flutter/material.dart';
 import 'tabs/mechanic_schedule_tab.dart';
 import 'tabs/mechanic_profile_tab.dart';
@@ -15,6 +16,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   final List<Widget> _pages = const [
     MechanicScheduleTab(),
     MechanicProfileTab(),
+    MechanicStatsTab(),
   ];
 
   void _onItemTapped(int index) {
@@ -45,6 +47,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
             icon: Icon(Icons.person),
             label: 'Hồ sơ',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Thống kê"),
         ],
       ),
     );
