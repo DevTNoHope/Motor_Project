@@ -26,4 +26,6 @@ router.use('/mechanic/parts', require('./mechanic.parts.api'));
 
 router.use('/notifications', require('./notifications.api'));
 
+router.use('/mechanic/stats', require('./mechanic.stats.api'));
+
 module.exports = router;
